@@ -88,7 +88,7 @@
         !> @name
         !! conts. in init. dist.
         !> @{
-        integer, parameter :: Ndistparam = 21
+        integer, parameter :: Ndistparam = 24
         double precision, dimension(Ndistparam) :: distparam
         !> @}
 
@@ -141,6 +141,8 @@
         type (EMfldCyl),target,dimension(Ncclmax) :: beamln13
         type (EMfldAna),target,dimension(Ncclmax) :: beamln14
         type (Multipole),target,dimension(Nquadmax) :: beamln15
+        type (RFQ),target,dimension(Nrfqmax) :: beamln21
+        type (Fieldmap),target,dimension(Nfldmpmax):: beamln22
         type (BeamLineElem),dimension(Nblemtmax)::Blnelem
         !> @}
 
@@ -160,21 +162,25 @@
         integer, allocatable, dimension(:) :: bnseg,bmpstp,bitype
         double precision, allocatable, dimension(:) :: blength,val1,val0,&
         val2, val3,val4,val5,val6,val7,val8,val9,val10,val11,val12,val13,val14,&
-        val15,val16,val17,val18,val19,val20,val21,val22,val23,val24
+        val15,val16,val17,val18,val19,val20,val21,val22,val23,val24,val25
         double precision :: time
         double precision :: t0,zz
-        double precision :: z,phsini
-        double precision, dimension(2) :: tmpdr 
+        double precision :: z,phsini,lj
+        double precision, dimension(9) :: tmpdr
         double precision, dimension(5) :: tmpcf 
         double precision, dimension(9) :: tmpbpm 
-        double precision, dimension(9) :: tmpquad
+        double precision, dimension(11) :: tmpquad
         double precision, dimension(10) :: tmpdipole 
         double precision, dimension(11) :: tmprf
+        double precision, dimension(10) :: tmpsl
         double precision, dimension(12) :: tmpslrf
         double precision, dimension(13) :: tmp13
         double precision, dimension(25) :: tmpdtl
+        double precision, dimension(26) :: tmprfq
+        double precision, dimension(25) :: tmpfldmp
         integer :: iqr,idr,ibpm,iccl,iccdtl,idtl,isc,icf,islrf,isl,idipole,&
-          iemfld,iemfldcart,iemfldcyl,iemfldana,ib,imult
+          iemfld,iemfldcart,iemfldcyl,iemfldana,ib,imult,irfq,ifldmp
+        double precision:: xtestp,ytestp
         integer, allocatable, dimension(:) :: seedarray
         real*8 rancheck
         integer :: seedsize
@@ -212,7 +218,7 @@
         endif
 
         !construct Constants class.
-        call constructT_PhysConst(dt,Bfreq)
+        call constructT_PhysConst(dt,Bfreq,Bmass)
 
 !-------------------------------------------------------------------
 ! construct computational domain CompDom class and get local geometry 
@@ -252,11 +258,12 @@
         allocate(val13(Nblem),val14(Nblem),val15(Nblem),val16(Nblem))
         allocate(val17(Nblem),val18(Nblem),val19(Nblem),val20(Nblem))
         allocate(val21(Nblem),val22(Nblem),val23(Nblem),val24(Nblem))
+        allocate(val25(Nblem))
 
         call in_Input(Nblem,blength,bnseg,bmpstp,bitype,val0,val1,&
         val2,val3,&
         val4,val5,val6,val7,val8,val9,val10,val11,val12,val13,val14,&
-        val15,val16,val17,val18,val19,val20,val21,val22,val23,val24)
+        val15,val16,val17,val18,val19,val20,val21,val22,val23,val24,val25)
 
         iccl = 0
         iccdtl = 0
@@ -274,6 +281,8 @@
         iemfldcyl = 0
         iemfldana = 0
         imult = 0
+        irfq = 0
+        ifldmp=0
         zz = 0.0
         !If we allow the starting edge "zz" of one beam line element
         !to be inside the preceding beam, this allows the beam line
@@ -305,6 +314,13 @@
                  bitype(i),blength(i))
             tmpdr(1) = val0(i)
             tmpdr(2) = val1(i)
+            tmpdr(3) = val2(i)
+            tmpdr(4) = val3(i)
+            tmpdr(5) = val4(i)
+            tmpdr(6) = val5(i)
+            tmpdr(7) = val6(i)
+            tmpdr(8) = val7(i)
+            tmpdr(9) = val8(i)
             call setparam_DriftTube(beamln1(idr),tmpdr)
             Blnelem(i) = assign_BeamLineElem(beamln1(idr))
           else if(bitype(i).eq.1) then
@@ -552,6 +568,67 @@
             tmp13(11) = val10(i)
             call setparam_EMfldAna(beamln14(iemfldana),tmp13)
             Blnelem(i) = assign_BeamLineElem(beamln14(iemfldana))
+          ! Add RFQ 2015-10-19
+          else if(bitype(i).eq.6) then
+            irfq = irfq + 1
+            call construct_RFQ(beamln21(irfq),bnseg(i),bmpstp(i),bitype(i),blength(i))
+            tmprfq(1) = val0(i)
+            tmprfq(2) = val1(i)
+            tmprfq(3) = val2(i)
+            tmprfq(4) = val3(i)
+            tmprfq(5) = val4(i)
+            tmprfq(6) = val5(i)
+            tmprfq(7) = val6(i)
+            tmprfq(8) = val7(i)
+            tmprfq(9) = val8(i)
+            tmprfq(10) = val9(i)
+            tmprfq(11) = val10(i)
+            tmprfq(12) = val11(i)
+            tmprfq(13) = val12(i)
+            tmprfq(14) = val13(i)
+            tmprfq(15) = val14(i)
+            tmprfq(16) = val15(i)
+            tmprfq(17) = val16(i)
+            tmprfq(18) = val17(i)
+            tmprfq(19) = val18(i)
+            tmprfq(20) = val19(i)
+            tmprfq(21) = val20(i)
+            tmprfq(22) = val21(i)
+            tmprfq(23) = val22(i)
+            tmprfq(24) = val23(i)
+            tmprfq(25) = val24(i)
+            tmprfq(26)=val25(i)
+
+            call setparam_RFQ(beamln21(irfq),tmprfq)
+            Blnelem(i) = assign_BeamLineElem(beamln21(irfq))
+          !*****************%%%%%%%%%%%%%%%
+          else if (bitype(i).eq.202) then
+            ifldmp=ifldmp+1
+            call construct_Fieldmap(beamln22(ifldmp),bnseg(i),bmpstp(i),bitype(i),blength(i))
+            tmpfldmp(1)=val0(i)
+            tmpfldmp(2)=val1(i)
+            tmpfldmp(3)=val2(i)
+            tmpfldmp(4)=val3(i)
+            tmpfldmp(5)=val4(i)
+            tmpfldmp(6)=val5(i)
+            tmpfldmp(7)=val6(i)
+            tmpfldmp(8)=val7(i)
+            tmpfldmp(9)=val8(i)
+            tmpfldmp(10)=val9(i)
+            tmpfldmp(11)=val10(i)
+            tmpfldmp(12)=val11(i)
+            tmpfldmp(13)=val12(i)
+
+            call setparam_Fieldmap(beamln22(ifldmp),tmpfldmp)
+            Blnelem(i)=assign_BeamLineElem(beamln22(ifldmp))
+
+            call setparam_fielddata(fldmp(i),beamln22(ifldmp),blength(i))
+
+            call setparam_fielddata(fldmp(i),tmpfldmp(2))    ! read E.txt field
+
+            xtestp=0.002
+            ytestp=0.002
+            call getField_fldmp(xtestp,ytestp,fldmp(i))  ! check field
           else
           endif 
           zz = val0(i) + blength(i)
@@ -593,6 +670,7 @@
         ioutend = 0
         itszend = 0
         isteerend = 0
+
         if(Rstartflg.eq.1) then
           call inpoint_Output(nfileout+myid,Ebunch(1),tend,iend,ibchend,nprow,npcol,&
           Ageom,Nx,Ny,Nz,myidx,myidy,Np(1),ioutend,itszend,isteerend,isloutend,&
@@ -600,8 +678,7 @@
           if(myid.eq.0) print*,"restart at: ",tend,iend,ib
         else
           !call sample_Dist(Ebunch(1),distparam,Ndistparam,Flagdist,Ageom,grid2d,Flagbc)
-          ib = 1
-          call sample_Dist(Ebunch(1),distparam,Ndistparam,Flagdist,Ageom,grid2d,Flagbc,ib,Nbunch)
+          call sample_Dist(Ebunch(1),distparam,Ndistparam,Flagdist,Ageom,grid2d,Flagbc,1,Nbunch)
         endif
 
         call MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -656,7 +733,8 @@
         integer, allocatable, dimension(:,:,:) :: temptab
         double precision :: z0,z,tau1,tau2,blength,t0,zend
         double precision, allocatable, dimension(:,:) :: lctabrgx, lctabrgy
-        double precision, dimension(6) :: lcrange,range,ptrange,sgcenter,grange
+        double precision, dimension(6) :: lcrange,range,grange
+        double precision, allocatable  :: ptrange(:,:), sgcenter(:,:)
         double precision, dimension(3) :: msize
         double precision :: hy,hz,ymin,zmin,piperad,zedge,hzwake
         double precision :: tmp1,tmp2,tmp3,tmp4,rfile
@@ -674,7 +752,7 @@
         integer :: nsubstep,integerSamplePeriod
         double precision :: zcent,distance,blnLength,dzz
         integer, allocatable, dimension(:,:) :: idrfile
-        integer :: ibend,ibstart,isw,ibinit,ibendold,iifile,ii,ibinitold,idbeamln
+        integer :: ibend,ibstart,isw,ibinit,ibendold,iifile,ii,ibinitold,idbeamln,icell
         double precision :: zmax,t,dtless,zshift,gammazavg,curr
         integer :: tmpflag,ib,ibb,ibunch,inib,nplctmp,nptmp,nptottmp
         double precision, allocatable, dimension(:) :: gammaz
@@ -702,6 +780,7 @@
         double precision, dimension(101) :: tphout,tsteer,xoffset,yoffset,&
                                      pxoffset,pyoffset,zoffset,pzoffset,tslout
         integer :: flagazmuth
+        double precision :: Rfqr
         !//the following parameters are defined for the wakefield
         !//calculation: only short range transverse dipole, longitudinal monopole wakes
         !//are included. This follows K. Bane's paper (SLAC-PUB-9663), March 2003, for
@@ -726,7 +805,7 @@
         integer :: iizz1,flagcsr
         double precision :: eeff,ssll,r0bend,kkcsr,Bybend
         !//for N body
-        integer  :: nplocal0,np0
+        integer, allocatable, dimension(:) :: nplocal0, np0
         integer :: itsz
         real*8 :: bendlen,zz1,zz2,zwkmin,poscent,zfmin,zfmax,coeftol
         integer :: ldsg,nlsg,nrsg,npsg,msg,ncoefreal,iz
@@ -777,6 +856,24 @@
         double precision, dimension(50) :: dkx
         double precision :: dtype1,da1,db1,deps1,dLx1,dnkx1,dnky1,hx,xmi,ymi
 
+        double precision :: sec0, sec1
+        double precision :: rmin,zmi,dltest,drtest,pj1,pj2
+        double precision :: rtest, betas
+        double precision, allocatable :: dL(:)
+
+       !**************************%%%%%%  by LHP
+        double precision, dimension(3) :: momentumt
+        double precision, dimension(4) ::post
+        double precision, dimension(6) :: fldtest
+        double precision, allocatable,dimension(:) :: timeend
+        double precision :: offset1, offset2
+        momentumt(1) =-2
+        momentumt(2)=-1
+        post(1)=0.0025   ! field along the line: x=post(1), y=post(2)
+        post(2)=0.0025
+        offset1=0
+        offset2=0
+       !*******************%%%%%%%%%%%%##
 
         twopi = 4*asin(1.0d0)
         !zadjmax = 0.15 !30% increase of z domain
@@ -921,6 +1018,7 @@
         !idrfile is used to store the <element type>, <external data file name>,
         !and <id> for the internal data storage of each beamline element  
         allocate(idrfile(3,Nblem))
+        allocate(timeend(Nblem))
         idrfile = 1
         idrfile(2,:) = -10
         do i = 1, Nblem
@@ -941,8 +1039,8 @@
           endif
           if(bitype.eq.(-1)) then
             isteer = isteer + 1
-            if(isteer.gt.100) then
-              print*,"The maximum steering location is 100!!!"
+            if(isteer.gt.1000) then
+              print*,"Too long RFQ!"
               isteer = 100
             endif
             call getparam_BeamLineElem(Blnelem(i),2,tsteer(isteer))
@@ -1128,6 +1226,7 @@
             call getparam_BeamLineElem(Blnelem(i),3,tstop)
             print*,"tstop: ",tstop
           endif
+
         enddo
 
 !        Ebunch(1)%Pts1 = 1.0d0
@@ -1149,6 +1248,12 @@
 
         allocate(gammaz(Nbunch))
         allocate(brange(12,Nbunch))
+        allocate(nplocal0(Nbunch))
+        allocate(np0(Nbunch))
+        allocate(ptrange(6,Nbunch))
+        allocate(sgcenter(6,Nbunch))
+        allocate(dL(Nbunch))
+
         !count the total current and # of particles and local # of particles for each 
         !bunch or bin
         curr = 0.0d0
@@ -1157,8 +1262,10 @@
           Nplocal(ib) = Ebunch(ib)%Nptlocal
           Np(ib) = Ebunch(ib)%Npt
         enddo
-        nplocal0 = Nplocal(1)
-        np0 = Np(1)
+        ! Store initial number of particles
+        nplocal0 = Nplocal
+        np0 = Np
+
         if(Flagdiag.eq.1) then
           !output the moments from the average of all bunches at fixed t.
           call diagnostic1avg_Output(t,Ebunch,Nbunch)
@@ -1196,6 +1303,11 @@
           call sliceprocdep_Output(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
                    Nz,qchg,Ebunch(ib)%Mass,60+ib-1)
         enddo
+        !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        do ib=1, Nbunch
+          call plt_Output(110+ib-1,Nblem,Ebunch(ib),Bfreq,ib)
+        end do
+        !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         dzz = betazini*Clight*dtless*Dt
         zmin = 0.0d0
         call MPI_BARRIER(comm2d,ierr)
@@ -1205,10 +1317,14 @@
         !iend is the time step number from last simulation (used in
         !restart function).
         do i = iend+1, ntstep
+
           if(myid.eq.0) then
             print*,"i,t,<z>: ",i,t,distance
+            write(11,*)i,t,distance,ibunch
           endif
 
+          post(3)=distance
+          post(4)=t
           !switch on the backward traveling wave structure
           if(t.ge.tbtwstart) then
             flagbtw = 1
@@ -1221,14 +1337,14 @@
             do ib = 1, Nbunch
               !//find the range and center information of each bunch/bin
               call singlerange(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
-                             ptrange,sgcenter)
+                             ptrange(:,ib),sgcenter(:,ib))
               do ipt = 1, Nplocal(ib)
-                 Ebunch(ib)%Pts1(1,ipt) = Ebunch(ib)%Pts1(1,ipt) - sgcenter(1) + xoffset(isteer)
-                 Ebunch(ib)%Pts1(2,ipt) = Ebunch(ib)%Pts1(2,ipt) - sgcenter(2) + pxoffset(isteer)
-                 Ebunch(ib)%Pts1(3,ipt) = Ebunch(ib)%Pts1(3,ipt) - sgcenter(3) + yoffset(isteer)
-                 Ebunch(ib)%Pts1(4,ipt) = Ebunch(ib)%Pts1(4,ipt) - sgcenter(4) + pyoffset(isteer)
-                 Ebunch(ib)%Pts1(5,ipt) = Ebunch(ib)%Pts1(5,ipt) - sgcenter(5) + zoffset(isteer)
-                 Ebunch(ib)%Pts1(6,ipt) = Ebunch(ib)%Pts1(6,ipt) - sgcenter(6) + pzoffset(isteer)
+                 Ebunch(ib)%Pts1(1,ipt) = Ebunch(ib)%Pts1(1,ipt) - sgcenter(1,ib) + xoffset(isteer)
+                 Ebunch(ib)%Pts1(2,ipt) = Ebunch(ib)%Pts1(2,ipt) - sgcenter(2,ib) + pxoffset(isteer)
+                 Ebunch(ib)%Pts1(3,ipt) = Ebunch(ib)%Pts1(3,ipt) - sgcenter(3,ib) + yoffset(isteer)
+                 Ebunch(ib)%Pts1(4,ipt) = Ebunch(ib)%Pts1(4,ipt) - sgcenter(4,ib) + pyoffset(isteer)
+                 Ebunch(ib)%Pts1(5,ipt) = Ebunch(ib)%Pts1(5,ipt) - sgcenter(5,ib) + zoffset(isteer)
+                 Ebunch(ib)%Pts1(6,ipt) = Ebunch(ib)%Pts1(6,ipt) - sgcenter(6,ib) + pzoffset(isteer)
               enddo
             enddo
           endif
@@ -1417,10 +1533,10 @@
             do ib = 1, Nbunch
               !//find the range and center information of each bunch/bin
               call singlerange(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
-                             ptrange,sgcenter)
-              if(ptrange(6).gt.0.0) then
+                             ptrange(:,ib),sgcenter(:,ib))
+              if(ptrange(6,ib).gt.0.0) then
                 !ibunch = ibunch + 1
-              endif 
+              endif
             enddo
           endif
 
@@ -1428,25 +1544,25 @@
           do ib = 1, ibunch
             !//find the range and center of each bunch/bin
             call singlerange(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
-                             ptrange,sgcenter)
+                             ptrange(:,ib),sgcenter(:,ib))
             !Ebunch(ib)%refptcl(5) = sgcenter(5) + zorgin
-            Ebunch(ib)%refptcl(5) = sgcenter(5) 
-            gammaz(ib) = sqrt(1.0+sgcenter(6)**2)!//gammaz from <gamma_i betaz_i>
+            Ebunch(ib)%refptcl(5) = sgcenter(5,ib)
+            gammaz(ib) = sqrt(1.0+sgcenter(6,ib)**2)!//gammaz from <gamma_i betaz_i>
             !for test
             !gammaz(ib) = Bkenergy/Bmass+1.0d0
             Ebunch(ib)%refptcl(6) = -gammaz(ib)
             do inib = 1, 6
-              brange(inib,ib) = ptrange(inib)
-              brange(inib+6,ib) = sgcenter(inib)
+              brange(inib,ib) = ptrange(inib,ib)
+              brange(inib+6,ib) = sgcenter(inib,ib)
             enddo
             !the longitudinal range for space-charge calculation has to be > 0
 !            if(flagpos.eq.1) then
 !J.Q. 10/27/08
-              if(ptrange(5).gt.0) then
-                brange(5,ib) = ptrange(5)
-              else
-                brange(5,ib) = 0.0
-              endif
+            if(ptrange(5,ib).gt.0) then
+              brange(5,ib) = ptrange(5,ib)
+            else
+              brange(5,ib) = 0.0
+            endif
 
 !            else
 !              brange(5,ib) = ptrange(5)
@@ -1472,14 +1588,26 @@
             exit
           endif
 
-          !check the particles outside the computational domain
-          do ib = 1, ibunch
-            call lost_BeamBunch(Ebunch(ib),xrad,yrad,Perdlen,zcent,&
-                                nplctmp,nptmp)
-            Nplocal(ib) = nplctmp
-            Np(ib) = nptmp
+          !****************************
+          icell=1
+          do ii=1,Nblem
+              if(distance.ge.zBlnelem(1,ii) .and. (distance .le. zBlnelem(2,ii))) then
+                 icell=ii
+                 exit
+              endif
+          enddo
+          !****************************
+
+          ! Remove lost particles from the bunch - non-periodic structures
+          if(.not.associated(Blnelem(icell)%prfq).and..not.associated(Blnelem(icell)%pdtl)) then
+            do ib = 1, ibunch
+              call lost_BeamBunch(Ebunch(ib),xrad,yrad,Perdlen,zcent,&
+                                  nplctmp,nptmp)
+              Nplocal(ib) = nplctmp
+              Np(ib) = nptmp
 !!            print*,"npt: ",ib,myid,nplctmp,nptmp
-          enddo 
+            end do
+          end if
 
           totnpts = sum(Np)
           if(totnpts.le.0) exit
@@ -1492,7 +1620,10 @@
           zmax = grange(6)*Scxlt
 !          if(zmax.le.0.0) goto 1000 !if no particles emittted pass field calcuation
 
-          if(myid.eq.0) print*,"zmin,zmax: ",zmin,zmax
+          if(mod(i,15).eq.0) then
+            if(myid.eq.0) print*,"zmin,zmax: ",zmin,zmax
+          endif
+
           !using the following way, we can find the id of the min element
           !and the max. element between which the bunch stays. It works even
           !if there are more than one element overlaps each other. However,
@@ -1505,6 +1636,7 @@
                exit !exit the loop from the first element id containing zmin
             endif
           enddo
+          timeend(idbeamln)=t
           ibinit = idbeamln
           !exit the loop from the last element id containing zmax
           do ii = ibinit, Nblem
@@ -1608,6 +1740,33 @@
           enddo 
           ibinitold = ibinit
           ibendold = ibend
+
+          dltest=zBlnelem(2,ibend)-zBlnelem(1,ibend)
+
+
+          !*******************%%%%%%%%%%%% by LHP
+          if(associated(Blnelem(ibend)%prfq)) then
+            !call getparam_BeamLineElem(Blnelem(ibend),5,pxoffset(ibend))
+            call getparam_BeamLineElem(Blnelem(ibend),5,rtest)
+            call getparam_BeamLineElem(Blnelem(ibend),8,betas)
+            rmin=2*0.01*rtest
+          elseif (associated(Blnelem(ibend)%pdtl)) then
+            !call getfldt_DTL(post,momentumt,fldtest,Blnelem(icell)%pdtl,fldmp(icell))
+          elseif (associated(Blnelem(ibend)%pfldmp)) then
+            call getparam_BeamLineElem(Blnelem(ibend),13,rmin)
+          else if (associated(Blnelem(ibend)%pquad)) then
+            call getparam_BeamLineElem(Blnelem(ibend),4,rmin)
+          else if (associated(Blnelem(ibend)%psl)) then
+            call getparam_BeamLineElem(Blnelem(ibend),4,rmin)
+          else if (associated(Blnelem(ibend)%pdrift)) then
+            call getparam_BeamLineElem(Blnelem(ibend),2,rmin)
+          end if
+          !*********************%%%%%%%%%%%
+          ! print *, icell, rmin
+
+        !  drtest=pxoffset(ibend)
+
+          dL(:) = 0.5*sgcenter(6,:)*clight/scfreq
 
           if(idbend.ne.1) then !not bending magnet
 
@@ -1920,14 +2079,14 @@
               if(distance.gt.zimage) FlagImage = 0
               !zshift = -(brange(5,ib)+brange(6,ib))*Scxlt
               zshift = -(range(5)+range(6))*gammaz(ib)*Scxlt
-              if((Flagbc.eq.1) .and. (flagspc.eq.1)) then
+                  if((Flagbc.eq.1 .or. Flagbc.eq.11) .and. (flagspc.eq.1)) then
                 ! solve Poisson's equation using 3D isolated boundary condition.
                 ! the image space-charge potential with respect to z = 0 is calculated
                 ! if the FlagImage is on
                 !no space-charge, only wake field
                 call update3Otnew_FieldQuant(Potential,chgdens,Ageom,&
                 grid2d,Nxlocal,Nylocal,Nzlocal,npx,npy,nylcr,nzlcr,gammaz(ib),&
-                tmppot,FlagImage,zshift)
+                    tmppot,FlagImage,zshift,dl(ib),dl(ib))
               else
                 print*,"no such boundary condition type!!!"
 !                stop
@@ -1975,6 +2134,7 @@
                 enddo
 
               endif
+
 !!! DWA
               if(dflagwake.eq.1) then
                 do kz=1,Nzlocal
@@ -2020,7 +2180,7 @@
                 stop
               else
                 !Boris's 2nd order integrator
-                call kick2t_BeamBunch(Nplocal(ib),Nxlocal,Nylocal,Nzlocal,&
+                call kick2t_BeamBunch(Nplocal(ib),Bcurr,Nxlocal,Nylocal,Nzlocal,&
                 Ebunch(ib)%Pts1,exg,eyg,ezg,bxg,byg,bzg,Ageom,npx,npy,myidx,&
                 myidy,t,Ebunch(ib)%Charge,Ebunch(ib)%Mass,dtless,Blnelem,&
                 zBlnelem,idrfile,Nblem,ibinit,ibend,fldmp,Flagerr)
@@ -2031,10 +2191,10 @@
 
             do ib = 1, ibunch
               totchrg = Ebunch(ib)%Current/Bfreq
-              call kickpt2ptImg_BeamBunch(nplocal0,Ebunch(ib)%Pts1,t,&
+              call kickpt2ptImg_BeamBunch(nplocal0(ib),Ebunch(ib)%Pts1,t,&
                  Ebunch(ib)%Charge,&
                  Ebunch(ib)%Mass,dtless,Blnelem,zBlnelem,idrfile,Nblem,&
-                 ibinit,ibend,fldmp,totchrg,r0,np0,Np(ib))
+                 ibinit,ibend,fldmp,totchrg,r0,np0(ib),Np(ib))
             enddo
 
             endif
@@ -2043,7 +2203,7 @@
               call scatter20t_BeamBunch(Nplocal(ib),Ebunch(ib)%Pts1,t,&
                  Ebunch(ib)%Charge,&
                  Ebunch(ib)%Mass,dtless,Blnelem,zBlnelem,idrfile,Nblem,&
-                 ibinit,ibend,fldmp,Flagerr)
+                 sgcenter(:,ib),ibinit,ibend,fldmp,Flagerr)
             enddo
           endif
 
@@ -2078,8 +2238,8 @@
           endif
           t = t + 0.5*dtless*Dt
  
-          !output for every 5 steps
-          if(mod(i,5).eq.0) then
+            !output for every 15 steps
+            if(mod(i,15).eq.0) then
 
           if(Flagdiag.eq.1) then
             call diagnostic1avg_Output(t,Ebunch,Nbunch)
@@ -2139,6 +2299,69 @@
 
           !test the rebin function
           dGspread = 1.0
+
+!*******************%%%%%%%%%%%% by LHP
+            momentumt(3)=sgcenter(6,1)
+            if(associated(Blnelem(icell)%prfq)) then
+              call getfld_RFQ(post,momentumt,fldtest,Blnelem(icell)%prfq)
+            else if (associated(Blnelem(icell)%pdtl)) then
+              call getfldt_DTL(post,momentumt,fldtest,Blnelem(icell)%pdtl,fldmp(icell))
+            elseif (associated(Blnelem(icell)%pfldmp)) then
+              call getfld_Fieldmap(post,momentumt,fldtest,Blnelem(icell)%pfldmp,fldmp(icell))
+            elseif (associated(Blnelem(icell)%psl)) then
+              call getfld_Sol(post, momentumt,fldtest,Blnelem(icell)%psl)
+            endif
+            !*********************%%%%%%%%%%%
+            !        if(distance.le.tphout(iout+1) .and. &
+            !             (distance+dzz).ge.tphout(iout+1)) then
+            !             iout = iout + 1
+            !             do ib = 1, Nbunch
+            !                call phase_Output(iout+40,Ebunch(ib),nsamp(iout))
+            !            enddo
+            !        endif
+
+            ! For periodic structures, allow particles to slip from one bunch to another
+            if(associated(Blnelem(icell)%prfq).or.associated(Blnelem(icell)%pdtl)) then
+              offset1=0
+              offset2=0
+              do ib = 1, Nbunch
+                do ipt = 1, Nplocal(ib)
+                  pj1= scxlt*Ebunch(ib)%Pts1(5,ipt)-distance
+                  pj2= -scxlt*Ebunch(ib)%Pts1(5,ipt)+distance
+                  if((pj1.ge.dL(ib)*1.1).and.(pj1.le.2*dL(ib))) then
+                    Ebunch(ib)%Pts1(5,ipt)=Ebunch(ib)%Pts1(5,ipt)-dL(ib)/scxlt*2.0
+                    offset1=offset1+1
+                  end if
+
+                  if((pj2.ge.dL(ib)) .and.(pj2.le.2*dL(ib))) then
+                    Ebunch(ib)%Pts1(5,ipt)=Ebunch(ib)%Pts1(5,ipt)+dL(ib)/scxlt*2.0
+                    offset2=offset2+1
+                  end if
+                end do
+              end do
+              !write(12,100)distance,offset1,offset2
+!100          ! format(3(1x,e18.10))
+            end if
+
+            ! Remove lost particles from the bunch - periodic structures
+            if(associated(Blnelem(icell)%prfq).or.associated(Blnelem(icell)%pdtl)) then
+              do ib = 1, ibunch
+                zmi=distance
+                call lost_BeamBunch(Ebunch(ib),rmin,rmin,distance,zcent,dL(ib),nplctmp,nptmp)
+                Nplocal(ib) = nplctmp
+                Np(ib) = nptmp
+              end do
+            end if
+
+            !~~~~~~~~~~~~~~~******************
+            if ((distance.le.zBlnelem(2,icell)) .and. &
+               ((distance+dzz).ge.zBlnelem(2,icell)))then
+              do ib=1, Nbunch
+                call plt_Output(110+ib-1,Ebunch(ib), icell, sgcenter(:,ib), ib, np0(ib))
+              end do
+            end if
+            !~~~~~~~~~~~~~~~~~~**************
+
 
           else !into bending magnet
 
@@ -2258,11 +2481,11 @@
                   allocate(tmppot(Nxlocal,Nylocal,Nzlocal))
                   zshift = 0.0
                   tmpflag = 0
-                  if(Flagbc.eq.1) then
+                  if(Flagbc.eq.1 .or. Flagbc.eq.11) then
                     ! solve Poisson's equation using 3D isolated boundary condition.
                     call update3Otnew_FieldQuant(Potential,chgdens,Ageom,&
                     grid2d,Nxlocal,Nylocal,Nzlocal,npx,npy,nylcr,nzlcr,gammazavg,&
-                    tmppot,tmpflag,zshift)
+                    tmppot,tmpflag,zshift,dL(ib),dL(ib))
                   else
                     print*,"no such boundary condition type!!!"
                     stop
@@ -2532,6 +2755,7 @@
         do ib = 1, Nbunch
           i = 50+ib-1 
           call phase_Output(i,Ebunch(ib),1)
+          call dst_Output(i+10,Ebunch(ib),Bfreq,ib) ! by LHP
           qchg = Ebunch(ib)%Current/Scfreq
           call sliceprocdep_Output(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
                    Nz,qchg,Ebunch(ib)%Mass,70+ib-1)

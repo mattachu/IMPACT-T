@@ -17,6 +17,7 @@
         implicit none
       
         !physical parameters and constants ---------------------
+        INTEGER::NUMR
         double precision :: Pi
         double precision :: Clight !< speed of light in vaccum
         double precision :: Scxl !< length scale in z domain code
@@ -31,9 +32,10 @@
         double precision :: Sce0 !< electrical field scale
         double precision :: Scb0 !< magnetic field scale
         double precision :: Scrho0 !< charge density scale
+        double precision :: Mass_0 !< static mass
       contains
-        subroutine constructT_PhysConst(dt,reffreq)
-        double precision, intent(in) :: dt,reffreq
+        subroutine constructT_PhysConst(dt,reffreq,mass)
+        double precision, intent(in) :: dt,reffreq,mass
 
         Clight = 299792458.0d0 
         Pi = 2*asin(1.0d0)
@@ -49,6 +51,7 @@
         Sce0 = Scphi0/Scxlt
         Scb0 = Scm0/(Scxlt*Scq0)
         Scrho0 = Epsilon0/(Scxlt*Scxlt)
+        Mass_0=mass
 
         end subroutine constructT_PhysConst
  

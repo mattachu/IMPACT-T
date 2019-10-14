@@ -137,7 +137,7 @@
           ymax = xmu3 + 2*sig11y/sqrt(1.0-uy*uy)
           zmin = xmu5 -sqrt(3.0)*sig11z/sqrt(1.0-uz*uz)
           zmax = xmu5 + sqrt(3.0)*sig11z/sqrt(1.0-uz*uz)
-        elseif(flg.eq.6) then !read in
+        elseif(flg.eq.16) then !read in
           xmin = xmu1 -2*sig11x/sqrt(1.0-ux*ux)
           xmax = xmu1 + 2*sig11x/sqrt(1.0-ux*ux)
           ymin = xmu3 -2*sig11y/sqrt(1.0-uy*uy)

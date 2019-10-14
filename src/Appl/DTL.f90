@@ -652,14 +652,38 @@
 
         end subroutine getfld_DTL
 
+        !************%%%%%%%%%%%%%%%%%
+         subroutine getfielddata_DTL(this)
+         implicit none
+       !character, intent(in) :: n
+       type (fielddata), intent(out) :: this
+        integer :: leng
+    !    integer, parameter :: Ncoef = 100
+        double precision  :: coef
+        !open(4,file ="rfdata"//n,status = "old")
+        open(4,file="rfdatax",status="old")
+        leng = 0
+ 10     continue
+          read(4,*,end=100) coef
+          leng = leng +1
+         this%Fcoeft(leng) = coef
+        goto 10
+ 100    continue
+        close(4)
+        this%Ndatat = leng
+
+         end subroutine getfielddata_DTL
+         !***********************************%%%%%%%%
+
         !--------------------------------------------------------------------------------------
         !> @brief
         !> get external field without displacement and rotation errors.
         !--------------------------------------------------------------------------------------
-        subroutine  getfldt_DTL(pos,extfld,this,fldata)
+        subroutine  getfldt_DTL(pos,momentum,extfld,this,fldata)
         implicit none
         include 'mpif.h'
         double precision, dimension(4), intent(in) :: pos
+        double precision, dimension(3), intent(in) :: momentum
         type (DTL), intent(in) :: this
         type (fielddata), intent(in) :: fldata
         double precision, dimension(6), intent(out) :: extfld
@@ -668,6 +692,8 @@
         double precision :: tmpex,tmpey,tmpez,tmpbx,tmpby,tmpbz
         double precision:: bgrad,bgrad1,bgrad2,len1,len2,r2,zmid
         integer :: i
+        double precision :: extest, eytest, eztest
+        double precision :: phase
 
         clite = 299792458.e0
         pi = 2*asin(1.0)
@@ -729,6 +755,11 @@
         f1 = -(ezpp1+ez1*xlrep*xlrep)/4
         f1p = -(ezppp+ezp1*xlrep*xlrep)/4
         r2 = pos(1)**2+pos(2)**2
+        !~~~~~~~~~~~~~~ by LHP
+        extest =-pos(1)*(ezp1/2+f1p*r2/4)
+        eytest =-pos(2)*(ezp1/2+f1p*r2/4)
+        eztest = (ez1+f1*r2)
+        !~~~~~~~~~~~~~~~
         tmpex = -pos(1)*(ezp1/2+f1p*r2/4)*tmpcos
         tmpey = -pos(2)*(ezp1/2+f1p*r2/4)*tmpcos
         tmpez = (ez1+f1*r2)*tmpcos
@@ -742,5 +773,21 @@
         extfld(5) = extfld(5) + tmpby
         extfld(6) = extfld(6) + tmpbz
 
+        phase=(ww*tt+theta0)*180.0/pi
+        phase=MOD(phase,360.0)!+180.0
+        if (phase.ge.180.0) then
+            phase=phase-360.0
+        endif
+
+        if (momentum(1).eq.(-2)) then
+            write(9,100)  pos(3), extest, eytest,eztest,tmpex,tmpey,tmpez, phase
+100         format(9(1x,e12.6),/)
+
+            !if abs(pos(3)-zedge).le.(dt*momentum(3)*clite) then
+        ! write(7,*) elementno, phase
+        !endif
+        end if
+
         end subroutine getfldt_DTL
+
       end module DTLclass

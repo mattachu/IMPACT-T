@@ -14,7 +14,7 @@
       module DriftTubeclass
         use PhysConstclass
         use Dataclass
-        integer, private, parameter :: Nparam = 2
+        integer, private, parameter :: Nparam = 9
         type DriftTube
           !Itype = 0
           integer :: Nseg,Mapstp,Itype
@@ -114,10 +114,11 @@
         end subroutine getparam3_DriftTube
        
 
-        subroutine  getfld_DriftTube(pos,extfld,this)
+        subroutine  getfld_DriftTube(pos,momentum,extfld,this)
         implicit none
         include 'mpif.h'
         double precision, dimension(4), intent(in) :: pos
+         double precision, dimension(3), intent(in) :: momentum
         type (DriftTube), intent(in) :: this
         double precision, dimension(6), intent(out) :: extfld
         double precision:: zz,bgrad,zedge

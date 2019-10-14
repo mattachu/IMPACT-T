@@ -14,7 +14,7 @@
       module Solclass
         use PhysConstclass
         use Dataclass
-        integer, private, parameter :: Nparam = 9
+        integer, private, parameter :: Nparam = 10
         type Sol
           !Itype = 3
           integer :: Nseg,Mapstp,Itype
@@ -199,11 +199,12 @@
         !> get external field without displacement and rotation errors and
         !> with fringe field of Solenoid. (f(z) = b0 + bb*z^2 + cc*z^4,f(x0)=0,f'(x0)=0)
         !--------------------------------------------------------------------------------------
-        subroutine  getfld_Sol(pos,extfld,this)
+        subroutine  getfld_Sol(pos,momentum,extfld,this)
         implicit none
         include 'mpif.h'
         double precision, dimension(4), intent(in) :: pos
         type (Sol), intent(in) :: this
+        double precision, dimension(3), intent(in) :: momentum
         double precision, dimension(6), intent(out) :: extfld
         double precision :: zedge
         double precision:: zz,bgrad,b0,bb,cc,zshift,x0
@@ -217,6 +218,8 @@
         extfld(1) = 0.0
         extfld(2) = 0.0
         extfld(3) = 0.0
+
+        if (this%Param(10).gt.0) then
 
         if((zz.ge.0.0).and.(zz.lt.x0)) then
           bb = -2*b0/(x0*x0)
@@ -244,6 +247,17 @@
           extfld(4) = 0.0
           extfld(5) = 0.0
           extfld(6) = 0.0
+        endif
+
+        else
+          extfld(4) = 0.0
+          extfld(5) = 0.0
+          extfld(6) = b0
+        endif
+
+        if (momentum(1).eq.(-2)) then
+          write(9,110) pos(3),extfld(4),extfld(5),extfld(6),extfld(4),extfld(5),extfld(6) !,betax,betay,betaz
+110       format(8(1x,e12.6),/)
         endif
 
         end subroutine getfld_Sol

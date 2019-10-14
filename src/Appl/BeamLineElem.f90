@@ -29,6 +29,8 @@
         use EMfldAnaclass
         use EMfldCylclass
         use EMfldCartclass
+        use RFQclass
+        use Fieldmapclass
         type BeamLineElem
 !          private
           type (BPM), pointer :: pbpm
@@ -47,12 +49,14 @@
           type (EMfldAna), pointer :: pemfldana
           type (EMfldCart), pointer :: pemfldcart
           type (EMfldCyl), pointer :: pemfldcyl
+          type (RFQ),pointer :: prfq
+          type (Fieldmap), pointer :: pfldmp
         end type BeamLineElem
         interface assign_BeamLineElem
           module procedure assign_ccl,assign_ccdtl,assign_dtl,assign_quad,&
           assign_drift,assign_sc,assign_bpm,assign_cf,assign_slrf,assign_sl,&
           assign_dipole,assign_emfld,assign_emfldana,assign_emfldcart,&
-          assign_emfldcyl,assign_mult
+          assign_emfldcyl,assign_mult,assign_rfq,assign_fieldmap
         end interface
         interface getparam_BeamLineElem
           module procedure getparam1_BeamLineElem, &
@@ -85,6 +89,8 @@
         nullify(ppquad%pemfldcart)
         nullify(ppquad%pemfldcyl)
         nullify(ppquad%pmult)
+        nullify(ppquad%prfq)
+        nullify(ppquad%pfldmp)
 
         end function assign_quad
 
@@ -108,6 +114,8 @@
         nullify(ppdrift%pemfldcart)
         nullify(ppdrift%pemfldcyl)
         nullify(ppdrift%pmult)
+        nullify(ppdrift%prfq)
+        nullify(ppdrift%pfldmp)
 
         end function assign_drift
          
@@ -131,6 +139,8 @@
         nullify(ppccl%pemfldcart)
         nullify(ppccl%pemfldcyl)
         nullify(ppccl%pmult)
+        nullify(ppccl%prfq)
+        nullify(ppccl%pfldmp)
 
         end function assign_ccl
          
@@ -154,6 +164,8 @@
         nullify(ppccdtl%pemfldcart)
         nullify(ppccdtl%pemfldcyl)
         nullify(ppccdtl%pmult)
+        nullify(ppccdtl%prfq)
+        nullify(ppccdtl%pfldmp)
 
         end function assign_ccdtl
 
@@ -177,6 +189,8 @@
         nullify(ppdtl%pemfldcart)
         nullify(ppdtl%pemfldcyl)
         nullify(ppdtl%pmult)
+        nullify(ppdtl%prfq)
+        nullify(ppdtl%pfldmp)
 
         end function assign_dtl
 
@@ -200,6 +214,8 @@
         nullify(ppsc%pemfldcart)
         nullify(ppsc%pemfldcyl)
         nullify(ppsc%pmult)
+        nullify(ppsc%prfq)
+        nullify(ppsc%pfldmp)
 
         end function assign_sc
 
@@ -223,6 +239,8 @@
         nullify(ppbpm%pemfldcart)
         nullify(ppbpm%pemfldcyl)
         nullify(ppbpm%pmult)
+        nullify(ppbpm%prfq)
+        nullify(ppbpm%pfldmp)
 
         end function assign_bpm
 
@@ -246,6 +264,8 @@
         nullify(ppcf%pemfldcart)
         nullify(ppcf%pemfldcyl)
         nullify(ppcf%pmult)
+        nullify(ppcf%prfq)
+        nullify(ppcf%pfldmp)
 
         end function assign_cf
 
@@ -269,6 +289,8 @@
         nullify(ppslrf%pemfldcart)
         nullify(ppslrf%pemfldcyl)
         nullify(ppslrf%pmult)
+        nullify(ppslrf%prfq)
+        nullify(ppslrf%pfldmp)
 
         end function assign_slrf
 
@@ -292,6 +314,8 @@
         nullify(ppsl%pemfldcart)
         nullify(ppsl%pemfldcyl)
         nullify(ppsl%pmult)
+        nullify(ppsl%prfq)
+        nullify(ppsl%pfldmp)
 
         end function assign_sl
 
@@ -315,6 +339,8 @@
         nullify(ppdipole%pemfldcart)
         nullify(ppdipole%pemfldcyl)
         nullify(ppdipole%pmult)
+        nullify(ppdipole%prfq)
+        nullify(ppdipole%pfldmp)
 
         end function assign_dipole
 
@@ -338,6 +364,8 @@
         nullify(ppemfld%pemfldcart)
         nullify(ppemfld%pemfldcyl)
         nullify(ppemfld%pmult)
+        nullify(ppemfld%prfq)
+        nullify(ppemfld%pfldmp)
 
         end function assign_emfld
 
@@ -361,6 +389,8 @@
         nullify(ppemfldana%pemfldcart)
         nullify(ppemfldana%pemfldcyl)
         nullify(ppemfldana%pmult)
+        nullify(ppemfldana%prfq)
+        nullify(ppemfldana%pfldmp)
 
         end function assign_emfldana
 
@@ -384,6 +414,8 @@
         nullify(ppemfldcart%pemfldana)
         nullify(ppemfldcart%pemfldcyl)
         nullify(ppemfldcart%pmult)
+        nullify(ppemfldcart%prfq)
+        nullify(ppemfldcart%pfldmp)
 
         end function assign_emfldcart
 
@@ -407,6 +439,8 @@
         nullify(ppemfldcyl%pemfldana)
         nullify(ppemfldcyl%pemfldcart)
         nullify(ppemfldcyl%pmult)
+        nullify(ppemfldcyl%prfq)
+        nullify(ppemfldcyl%pfldmp)
 
         end function assign_emfldcyl
 
@@ -430,8 +464,60 @@
         nullify(ppmult%pemfldana)
         nullify(ppmult%pemfldcart)
         nullify(ppmult%pemfldcyl)
+        nullify(ppmult%prfq)
+        nullify(ppmult%pfldmp)
 
         end function assign_mult
+
+        function assign_rfq(trfq) result(pprfq)
+        type(BeamLineElem)::pprfq
+        type (RFQ), target, intent(in) :: trfq
+
+        pprfq%prfq => trfq
+        nullify(pprfq%psl)
+        nullify(pprfq%pbpm)
+        nullify(pprfq%pquad)
+        nullify(pprfq%pdrift)
+        nullify(pprfq%pccl)
+        nullify(pprfq%pccdtl)
+        nullify(pprfq%pdtl)
+        nullify(pprfq%psc)
+        nullify(pprfq%pcf)
+        nullify(pprfq%pslrf)
+        nullify(pprfq%pdipole)
+        nullify(pprfq%pemfld)
+        nullify(pprfq%pemfldana)
+        nullify(pprfq%pemfldcart)
+        nullify(pprfq%pemfldcyl)
+        nullify(pprfq%pmult)
+        nullify(pprfq%pfldmp)
+
+        end function assign_rfq
+
+        function assign_fieldmap(tfldmp) result(ppfldmp)
+        type(BeamLineElem) :: ppfldmp
+        type(Fieldmap),target, intent(in) :: tfldmp
+
+        ppfldmp%pfldmp=>tfldmp
+        nullify(ppfldmp%psl)
+        nullify(ppfldmp%pbpm)
+        nullify(ppfldmp%pquad)
+        nullify(ppfldmp%pdrift)
+        nullify(ppfldmp%pccl)
+        nullify(ppfldmp%pccdtl)
+        nullify(ppfldmp%pdtl)
+        nullify(ppfldmp%psc)
+        nullify(ppfldmp%pcf)
+        nullify(ppfldmp%pslrf)
+        nullify(ppfldmp%pdipole)
+        nullify(ppfldmp%pemfld)
+        nullify(ppfldmp%pemfldana)
+        nullify(ppfldmp%pemfldcart)
+        nullify(ppfldmp%pemfldcyl)
+        nullify(ppfldmp%pmult)
+        nullify(ppfldmp%prfq)
+
+        end function assign_fieldmap
 
         subroutine getparam1_BeamLineElem(this,i,blparam)
         implicit none 
@@ -471,6 +557,10 @@
           call getparam_EMfldCyl(this%pemfldcyl,i,blparam)
         elseif(associated(this%pmult)) then
           call getparam_Multipole(this%pmult,i,blparam)
+           elseif(associated(this%prfq)) then
+          call getparam_RFQ(this%prfq,i,blparam)
+          elseif(associated(this%pfldmp)) then
+               call getparam_Fieldmap(this%pfldmp,i,blparam)
         endif
 
         end subroutine getparam1_BeamLineElem
@@ -512,6 +602,10 @@
           call getparam_EMfldCyl(this%pemfldcyl,blparams)
         elseif(associated(this%pmult)) then
           call getparam_Multipole(this%pmult,blparams)
+           elseif(associated(this%prfq)) then
+          call getparam_RFQ(this%prfq,blparams)
+           elseif(associated(this%pfldmp)) then
+               call getparam_Fieldmap(this%pfldmp,blparams)
         endif
 
         end subroutine getparam2_BeamLineElem
@@ -557,6 +651,10 @@
           call getparam_EMfldCyl(this%pemfldcyl,blength,bnseg,bmapstp,btype)
         elseif(associated(this%pmult)) then
           call getparam_Multipole(this%pmult,blength,bnseg,bmapstp,btype)
+        elseif(associated(this%prfq)) then
+          call getparam_RFQ(this%prfq,blength,bnseg,bmapstp,btype)
+        elseif(associated(this%pfldmp)) then
+            call getparam_Fieldmap(this%pfldmp,blength,bnseg,bmapstp,btype)
         endif
 
         end subroutine getparam3_BeamLineElem
@@ -704,6 +802,18 @@
           anglerrx = this%pmult%Param(8)
           anglerry = this%pmult%Param(9)
           anglerrz = this%pmult%Param(10)
+        elseif(associated(this%prfq)) then
+          xerr = 0.0
+          yerr = 0.0
+          anglerrx = 0.0
+          anglerry = 0.0
+          anglerrz = 0.0
+          elseif(associated(this%pfldmp)) then
+           xerr = 0.0
+          yerr = 0.0
+          anglerrx = 0.0
+          anglerry = 0.0
+          anglerrz = 0.0
         endif
 
         end subroutine geterr_BeamLineElem
@@ -746,6 +856,10 @@
           call setparam_EMfldCyl(this%pemfldcyl,i,blparam)
         elseif(associated(this%pmult)) then
           call setparam_Multipole(this%pmult,i,blparam)
+          elseif(associated(this%prfq)) then
+          call setparam_RFQ(this%prfq,i,blparam)
+          elseif(associated(this%pfldmp)) then
+              call setparam_Fieldmap(this%pfldmp,i,blparam)
         endif
 
         end subroutine setparam1_BeamLineElem
@@ -787,6 +901,10 @@
           call setparam_EMfldCyl(this%pemfldcyl,blparams)
         elseif(associated(this%pmult)) then
           call setparam_Multipole(this%pmult,blparams)
+        elseif(associated(this%prfq)) then
+          call setparam_RFQ(this%prfq,blparams)
+        elseif(associated(this%pfldmp)) then
+            call setparam_Fieldmap(this%pfldmp, blparams)
         endif
 
         end subroutine setparam2_BeamLineElem
@@ -833,20 +951,25 @@
         elseif(associated(this%pmult)) then
           call setparam_Multipole(this%pmult,bnseg,bmapstp,&
                                     btype,blength)
+        elseif(associated(this%prfq)) then
+          call setparam_RFQ(this%prfq,bnseg,bmapstp,btype,blength)
+        elseif(associated(this%pfldmp)) then
+          call setparam_Fieldmap(this%pfldmp,bnseg,bmapstp,btype,blength)
         endif
 
         end subroutine setparam3_BeamLineElem
        
-        subroutine getfld_BeamLineElem(this,pos,extfld)
+        subroutine getfld_BeamLineElem(this,pos,momentum,extfld)!add the return values 2015-12-4
         implicit none
         type (BeamLineElem), intent(in) :: this
         double precision, dimension(4), intent(in) :: pos
+        double precision, dimension(3), intent(in) :: momentum
         double precision, dimension(6), intent(out) :: extfld
 
         if(associated(this%pquad)) then
-          call getfld_Quadrupole(pos,extfld,this%pquad)
+          call getfld_Quadrupole(pos,momentum,extfld,this%pquad)
         elseif(associated(this%pdrift)) then
-          call getfld_DriftTube(pos,extfld,this%pdrift)
+          call getfld_DriftTube(pos,momentum,extfld,this%pdrift)
         elseif(associated(this%pccl)) then
           call getfld_CCL(pos,extfld,this%pccl)
         elseif(associated(this%pccdtl)) then
@@ -864,7 +987,7 @@
         elseif(associated(this%pslrf)) then
           call getfld_SolRF(pos,extfld,this%pslrf)
         elseif(associated(this%psl)) then
-          call getfld_Sol(pos,extfld,this%psl)
+          call getfld_Sol(pos,momentum,extfld,this%psl)
         elseif(associated(this%pdipole)) then
           call getfld_Dipole(pos,extfld,this%pdipole)
         elseif(associated(this%pemfld)) then
@@ -877,6 +1000,8 @@
           call getfld_EMfldCyl(pos,extfld,this%pemfldcyl)
         elseif(associated(this%pmult)) then
           call getfld_Multipole(pos,extfld,this%pmult)
+        elseif(associated(this%prfq)) then
+          call getfld_RFQ(pos,momentum,extfld,this%prfq)
         endif
 
         end subroutine getfld_BeamLineElem
@@ -885,19 +1010,20 @@
         !> @brief
         !> get external field with displacement and rotation errors.
         !--------------------------------------------------------------------------------------
-        subroutine getflderr_BeamLineElem(this,pos,extfld,dx,dy,anglex,&
+        subroutine getflderr_BeamLineElem(this,pos,momentum,extfld,dx,dy,anglex,&
                                           angley,anglez)
         implicit none
         type (BeamLineElem), intent(in) :: this
         double precision, intent(in) :: dx,dy,anglex,angley,anglez
         double precision, dimension(4), intent(in) :: pos
+        double precision, dimension(3), intent(in) :: momentum
         double precision, dimension(6), intent(out) :: extfld
 
         if(associated(this%pquad)) then
           call getflderr_Quadrupole(pos,extfld,this%pquad,dx,dy,anglex,&
                                     angley,anglez)
         elseif(associated(this%pdrift)) then
-          call getfld_DriftTube(pos,extfld,this%pdrift)
+          call getfld_DriftTube(pos,momentum,extfld,this%pdrift)
         elseif(associated(this%pccl)) then
           call getflderr_CCL(pos,extfld,this%pccl,dx,dy,anglex,&
                                     angley,anglez)
@@ -910,6 +1036,8 @@
         elseif(associated(this%psc)) then
           call getflderr_SC(pos,extfld,this%psc,dx,dy,anglex,&
                                     angley,anglez)
+        elseif(associated(this%prfq)) then
+          call getfld_RFQ(pos,momentum,extfld,this%prfq)
         elseif(associated(this%pbpm)) then
           !call getfld_BPM(pos,extfld,this%pbpm)
           print*,"no field for BPM!!"
@@ -966,6 +1094,10 @@
           call getaxfldE_DTL(z,this%pdtl,ez1,ezp1,ezpp1)
         elseif(associated(this%psc)) then
           call getaxfldE_SC(z,this%psc,ez1,ezp1,ezpp1)
+        elseif(associated(this%prfq)) then
+          ez1 = 0.0
+          ezp1 = 0.0
+          ezpp1 = 0.0
         elseif(associated(this%pbpm)) then
           print*,"no field in BPM!!"
           ez1 = 0.0
@@ -995,25 +1127,34 @@
 
         end subroutine getaxfldE_BeamLineElem
 
-        subroutine getfldt_BeamLineElem(this,pos,extfld,fldata)
+        subroutine getfldt_BeamLineElem(this,pos,momentum,extfld,fldata)
         implicit none
         type (BeamLineElem), intent(in) :: this
         double precision, dimension(4), intent(in) :: pos
+         double precision, dimension(3), intent(in) :: momentum
         double precision, dimension(6), intent(out) :: extfld
         type (fielddata), intent(in) :: fldata
 
         if(associated(this%pquad)) then
-          call getfld_Quadrupole(pos,extfld,this%pquad)
+          call getfld_Quadrupole(pos,momentum,extfld,this%pquad)
         elseif(associated(this%pdrift)) then
-          call getfld_DriftTube(pos,extfld,this%pdrift)
+          call getfld_DriftTube(pos,momentum,extfld,this%pdrift)
         elseif(associated(this%pccl)) then
           call getfldt_CCL(pos,extfld,this%pccl,fldata)
         elseif(associated(this%pccdtl)) then
           call getfldt_CCDTL(pos,extfld,this%pccdtl,fldata)
         elseif(associated(this%pdtl)) then
-          call getfldt_DTL(pos,extfld,this%pdtl,fldata)
+          call getfldt_DTL(pos,momentum,extfld,this%pdtl,fldata)
         elseif(associated(this%psc)) then
           call getfldt_SC(pos,extfld,this%psc,fldata)
+        elseif(associated(this%prfq)) then
+          call getfld_RFQ(pos,momentum,extfld,this%prfq)
+        elseif(associated(this%pfldmp)) then
+          call getfld_Fieldmap(pos,momentum,extfld,this%pfldmp,fldata)
+        elseif(associated(this%pquad)) then
+          call getfld_Quadrupole(pos,momentum,extfld,this%pquad)
+        elseif(associated(this%psl)) then
+          call getfld_Sol(pos,momentum,extfld,this%psl)
         elseif(associated(this%pbpm)) then
           !call getfld_BPM(pos,extfld,this%pbpm)
           print*,"no field for BPM!!"
@@ -1041,25 +1182,28 @@
 
         end subroutine getfldt_BeamLineElem
 
-        subroutine getflderrt_BeamLineElem(this,pos,extfld,fldata)
+        subroutine getflderrt_BeamLineElem(this,pos,momentum,extfld,fldata)
         implicit none
         type (BeamLineElem), intent(in) :: this
         double precision, dimension(4), intent(in) :: pos
+        double precision, dimension(3), intent(in) :: momentum
         double precision, dimension(6), intent(out) :: extfld
         type (fielddata), intent(in) :: fldata
 
         if(associated(this%pquad)) then
           call getflderrt_Quadrupole(pos,extfld,this%pquad)
         elseif(associated(this%pdrift)) then
-          call getfld_DriftTube(pos,extfld,this%pdrift)
+          call getfld_DriftTube(pos,momentum,extfld,this%pdrift)
         elseif(associated(this%pccl)) then
           call getfldt_CCL(pos,extfld,this%pccl,fldata)
         elseif(associated(this%pccdtl)) then
           call getfldt_CCDTL(pos,extfld,this%pccdtl,fldata)
         elseif(associated(this%pdtl)) then
-          call getfldt_DTL(pos,extfld,this%pdtl,fldata)
+          call getfldt_DTL(pos,momentum,extfld,this%pdtl,fldata)
         elseif(associated(this%psc)) then
           call getfldt_SC(pos,extfld,this%psc,fldata)
+        elseif(associated(this%prfq)) then
+          call getfld_RFQ(pos,momentum,extfld,this%prfq)
         elseif(associated(this%pbpm)) then
           !call getfld_BPM(pos,extfld,this%pbpm)
           print*,"no field for BPM!!"
