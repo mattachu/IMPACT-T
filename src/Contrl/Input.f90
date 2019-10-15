@@ -17,6 +17,11 @@
 !----------------------------------------------------------------
       module Inputclass
         !use mpistub
+
+        ! Parameters for interactions input file
+        CHARACTER(15), PARAMETER :: INTERACTION_INPUT_FILE = "Interactions.in"
+        INTEGER :: INTERACTION_FILEUNIT ! set when file is opened
+
         interface in_Input
           module procedure in1_Input, in2_Input, in3_Input
         end interface
@@ -41,14 +46,14 @@
         orstartflg,oflagmap,distparam,nparam,obcurr,obkenergy,obmass,&
         obcharge,obfreq,oxrad,oyrad,operdlen,onblem,onpcol,onprow,oflagerr,&
         oflagdiag,oflagsbstp,ophsini,odt,ontstep,onbunch,oflagimg,&
-        onemission,otemission,ozimage)
+        onemission,otemission,ozimage,oflaginteract)
 
         implicit none
         include 'mpif.h'
         integer, intent(out) :: odim,onp,onx,ony,onz,oflagbc,oflagdist
         integer, intent(out) :: orstartflg,oflagmap,onblem,onpcol,onprow 
         integer, intent(out) :: oflagerr,oflagdiag,oflagsbstp,ontstep,&
-                                onbunch,oflagimg,onemission
+                                onbunch,oflagimg,onemission,oflaginteract
         integer, intent(in) :: nparam
         double precision, dimension(nparam), intent(out) :: distparam
         double precision, intent(out) :: obcurr,obkenergy,obmass,odt
@@ -105,6 +110,7 @@
           else
             backspace(13,err=789)
             read(13,*)odim,onp,oflagmap,oflagerr,oflagdiag,oflagimg,ozimage 
+            CALL readbonusflags_Input(13, oflaginteract)
             ii = ii+1
           endif
 40        continue
@@ -243,6 +249,7 @@
                          ierr)
         call MPI_BCAST(ophsini,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,&
                          ierr)
+        call MPI_BCAST(oflaginteract,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 
         end subroutine in1_Input
 
@@ -619,5 +626,163 @@
                          ierr)
 
         end subroutine in3_Input
+
+
+
+        ! Read in any bonus flags for additional modules that are
+        ! not part of the standard input file
+        !  - this allows adding extra module flags without needing to
+        !    change all existing input files, assisting backwards compatibility
+        !  - this is called *after* the standard reading of the line with the
+        !    main flags on, so starts by backing up the file and reading the
+        !    line again
+        !  - at the end of the routine, the file should be ready to continue
+        !    reading as normal
+        SUBROUTINE readbonusflags_Input(fileunit, flag_interact)
+          ! Parameters
+          INTEGER, INTENT(IN)  :: fileunit
+          INTEGER, INTENT(OUT) :: flag_interact
+          ! Variables
+          INTEGER          :: dim_in, np_in, flagmap_in, flagerr_in, &
+                              flagdiag_in, flagimg_in
+          INTEGER          :: dim_chk, np_chk, flagmap_chk
+          DOUBLE PRECISION :: zimage_in
+          INTEGER          :: ierr
+
+          ! Read the last input line again with the bonus flags included
+          BACKSPACE(fileunit)
+          READ(fileunit, *, IOSTAT=ierr) dim_in, np_in, flagmap_in, flagerr_in, &
+                                         flagdiag_in, flagimg_in, zimage_in, &
+                                         flag_interact
+
+          ! If we hit an error at this point, it's probably because
+          !  there are no bonus flags
+          IF(ierr /= 0) THEN
+            flag_interact = 0
+            BACKSPACE(fileunit)
+            RETURN
+          ENDIF
+
+          ! Read in the first few standard flags again and compare
+          !  - this is to check that we haven't moved to the next line
+          BACKSPACE(fileunit)
+          READ(fileunit, *, IOSTAT=ierr) dim_chk, np_chk, flagmap_chk
+          IF((ierr /= 0).OR.(dim_chk /= dim_in).OR.(np_chk /= np_in) &
+                        .OR.(flagmap_chk /= flagmap_in)) THEN
+            flag_interact = 0
+            BACKSPACE(fileunit)
+            RETURN
+          ENDIF
+
+        END SUBROUTINE readbonusflags_Input
+
+
+
+        ! Open the interactions input file and save the file unit number
+        SUBROUTINE openinteractions_Input()
+
+          OPEN(newunit=INTERACTION_FILEUNIT, file=INTERACTION_INPUT_FILE, &
+               status='old')
+
+        END SUBROUTINE openinteractions_Input
+
+
+
+        ! Close the interactions input file
+        SUBROUTINE closeinteractions_Input()
+
+          CLOSE(unit=INTERACTION_FILEUNIT)
+
+        END SUBROUTINE closeinteractions_Input
+
+
+
+        ! Skip lines beginning with "!"
+        SUBROUTINE skipcomments_Input(fileunit)
+          ! Parameters
+          INTEGER, INTENT(IN) :: fileunit
+          ! Variables
+          CHARACTER(1) :: first_character
+
+          ! Loop until find a line that doesn't start with an !
+          DO
+            READ(fileunit,*) first_character
+            IF(first_character /= "!") THEN
+              ! Go back to start of line, ready to read data
+              BACKSPACE(fileunit)
+              EXIT
+            ENDIF
+          ENDDO
+
+        END SUBROUTINE skipcomments_Input
+
+
+
+        ! Read the general interactions settings
+        SUBROUTINE readinteractions_Input(interaction_count, &
+                                          gas_pressure, gas_temperature)
+          ! Parameters
+          INTEGER,          INTENT(OUT) :: interaction_count
+          DOUBLE PRECISION, INTENT(OUT) :: gas_pressure, gas_temperature
+
+          CALL skipcomments_Input(INTERACTION_FILEUNIT)
+          READ(INTERACTION_FILEUNIT, *) interaction_count, &
+                                        gas_pressure, gas_temperature
+
+          ! Adjust units
+          gas_temperature = gas_temperature + 273.15 ! K = deg C + 273.15
+
+        END SUBROUTINE readinteractions_Input
+
+
+
+        ! Read the settings for a single interaction
+        SUBROUTINE readinteraction_Input(type, source_bunch, target_bunch, &
+                                          interval, peak_energy, peak_cross)
+          ! Parameters
+          INTEGER,          INTENT(OUT) :: type, source_bunch, target_bunch
+          DOUBLE PRECISION, INTENT(OUT) :: interval, peak_energy, peak_cross
+
+          CALL skipcomments_Input(INTERACTION_FILEUNIT)
+          READ(INTERACTION_FILEUNIT, *) type, source_bunch, target_bunch, &
+                                        peak_energy, peak_cross, interval
+
+        END SUBROUTINE readinteraction_Input
+
+
+
+        ! Read in how many interaction bunches are to be created
+        SUBROUTINE readinteractionbunchcount_Input(bunch_count)
+          ! Parameters
+          INTEGER, INTENT(OUT) :: bunch_count
+
+          CALL skipcomments_Input(INTERACTION_FILEUNIT)
+          READ(INTERACTION_FILEUNIT, *) bunch_count
+
+        END SUBROUTINE readinteractionbunchcount_Input
+
+
+
+        ! Read in the settings for a single interaction bunch
+        SUBROUTINE readinteractionbunch_Input(current_in, energy_in, mass_in, &
+                                              charge_in, phase_in, &
+                                              npt_start, npt_max, npt_factor)
+          ! Parameters
+          DOUBLE PRECISION, INTENT(OUT) :: current_in, energy_in, mass_in
+          DOUBLE PRECISION, INTENT(OUT) :: charge_in, phase_in
+          INTEGER,          INTENT(OUT) :: npt_start, npt_max
+          REAL,             INTENT(OUT) :: npt_factor
+          ! Variables
+          INTEGER :: bunch_id
+
+          CALL skipcomments_Input(INTERACTION_FILEUNIT)
+          READ(INTERACTION_FILEUNIT, *) bunch_id, current_in, energy_in, &
+                                        mass_in, charge_in, phase_in, &
+                                        npt_start, npt_max, npt_factor
+
+        END SUBROUTINE readinteractionbunch_Input
+
+
+
       end module Inputclass
 

@@ -1,0 +1,58 @@
+! Welcome to IMPACT-T interactions input file.
+! All comment lines start with "!" as the first character of the line.
+!
+! This file defines any interactions in the simulation.
+! To use interactions, the main input file must have the interact flag ON (1).
+!
+! General settings:
+!   - N: Number of interaction types
+!   - p: Residual gas pressure (Pa)
+!   - T: Residual gas temperature (deg C)
+!
+! N   p (Pa)   T (deg C)
+  1   1.0d-6   22
+!
+!
+! Interaction definitions: one line per interaction type
+!   - Type:   A code number corresponding to a particular type of interaction:
+!             1: Dissociation
+!   - Source: The bunch ID of the source particles (see below)
+!   - Target: The bunch ID of the target particles (see below)
+!   - E_peak: The energy at which the interaction cross-section is peaked (eV)
+!   - Sigma:  The interaction cross-section at this peak energy (m^2)
+!   - dz:     The interval at which to run the interaction (m)
+!
+! For the bunch IDs, start counting from the main bunch 1 in ImpactT.in, add
+!   any additional bunches from additional input files ImpactTx.in, then add
+!   any interaction bunches defined below.
+! For example, to dissociate one molecular hydrogen H_2^+ ion into two protons,
+!   the source bunch would be `1` for the main bunch in ImpactT.in, and
+!   the target bunch would be `2` for the interaction bunch below.
+!
+! Type   Source   Target   E_peak (eV)   Sigma (m^2)   dz (m)
+  1      1        2        100.0d0       1.0d-20       10.0d-3
+!
+!
+! Number of additional interaction bunches (1 for each type of target particle)
+  1
+!
+! Interaction bunch definitions
+!   - i:     Bunch number (not including standard bunches from ImpactTx.in)
+!   - I:     Starting beam current (A)
+!   - E:     Starting particle energy (eV)
+!   - m:     Particle rest mass (eV)
+!   - q:     Particle charge (e)
+!   - phi:   Starting phase (rad)
+!   - N_st:  Number of particles in the interaction bunch at the start
+!   - N_max: Maximum number of particles in the interaction bunch
+!              (set to zero to use multiple of main bunch)
+!   - N_x:   Multiplier of main bunch count
+!              (e.g. `2.0` for 1 hydrogen -> 2 protons,
+!                    `0.5` for 2 proton   -> 1 hydrogen ion)
+!
+! The values npt-max and npt-factor must be large enough to accept all possible
+!   interaction products from all simulated interactions, otherwise the
+!   simulation will run out of space in the interaction bunch.
+!
+! i   I (A)  E (eV)  m (eV)     q (e)   phi (rad)  N_st  N_max  N_x
+  2   0.0d0  25.0d3  938.272d6  1.0d0   0.0d0      0     0      2.0  ! protons

@@ -9,15 +9,16 @@
 ! step-size, number of steps, and number of bunches/bins
 !
 ! dt       Ntstep  Nbunch
-  1.0e-10  15000   2
+  1.0e-10  15000   1
 !
 ! more information needed by the integrator:
 ! phase-space dimension, number of particles, a series of flags
 ! that set the type of integrator, error study, diagnostics, and
-! image charge, and the cutoff distance for the image charge
+! image charge, the cutoff distance for the image charge,
+! and a flag whether to include interactions
 !
-! PSdim  Nptcl   integF  errF  diagF  imchgF  imgCutOff (m)
-  6      100000  1       0     2      0       0.0
+! PSdim  Nptcl   integF  errF  diagF  imchgF  imgCutOff (m) interactF
+  6      100000  1       0     2      0       0.0           1
 !
 !
 ! information about mesh: number of points in x, y, and z, type
@@ -25,8 +26,8 @@
 ! and longitudinal domain size (m), which should be larger than the total
 ! beamline element length
 !
-!  Nx  Ny  Nz  bcF   Rx    Ry    Lz
-   64  64  128 1     0.004 0.004 1.0e5
+!  Nx  Ny  Nz   bcF  Rx    Ry    Lz
+   64  64  128  1    0.004 0.004 1.0e5
 !
 !
 ! distribution type number, restart flag, space-charge substep

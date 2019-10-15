@@ -47,6 +47,8 @@
         use Distributionclass
         use Rangerclass
         use Depositorclass
+        USE InteractionClass
+
         implicit none
         !> @name
         !! \# of phase dim., num. total and local particles, int. dist. 
@@ -63,11 +65,13 @@
         !! \# of beam elems, type of integrator.
         !! FlagImage: switch flag for image space-charge force calculation: "1" for yes, 
         !! otherwise for no. 
+        !! flag_interact: switch flag for particle interactions:
+        !!                "1" for yes, otherwise for no.
         !! FlagRFQ: if RFQ cells are present then create output files
         !!          `rfq.dst` and `rfq.plt`
         !> @{
         integer :: Nx,Ny,Nz,Nxlocal,Nylocal,Nzlocal,Flagbc,&
-                            Nblem,Flagmap,Flagdiag,FlagImage
+                            Nblem,Flagmap,Flagdiag,FlagImage, flag_interact
         integer :: FlagRFQ = 0
         !> @}
 
@@ -204,7 +208,7 @@
               Flagmap,distparam,Ndistparam,Bcurr,Bkenergy,Bmass,Bcharge,&
         Bfreq,xrad,yrad,Perdlen,Nblem,npcol,nprow,Flagerr,Flagdiag,&
         Flagsubstep,phsini,dt,ntstep,Nbunch,FlagImage,Nemission,&
-        temission,zimage)
+        temission,zimage,flag_interact)
  
 !        print*,"Np: ",Np,dt,ntstep,Nx,Ny,Nz
 !        print*,"Bcurr: ",Bcurr,Bkenergy,Bmass,Bcharge,Bfreq
@@ -711,6 +715,12 @@
             call sample_Dist(Ebunch(ib),distparam,Ndistparam,Flagdist,Ageom,grid2d,Flagbc,ib,Nbunch)
           endif
         enddo
+
+        ! Set up particle interactions
+        IF(flag_interact == 1) THEN
+          IF (myid == 0) PRINT *, "Initializing particle interactions"
+          CALL construct_interactions(Ebunch, Nbunch)
+        ENDIF
 
         !get local particle number and mesh number on each processor.
         do ib = 1, Nbunch
@@ -1269,6 +1279,10 @@
         ! Store initial number of particles
         nplocal0 = Nplocal
         np0 = Np
+        ! Set total possible number of particles for interaction bunches
+        IF(flag_interact == 1) THEN
+            CALL interact_setnp0(np0, nplocal0, Ebunch)
+        ENDIF
 
         if(Flagdiag.eq.1) then
           !output the moments from the average of all bunches at fixed t.
@@ -1325,8 +1339,8 @@
         do i = iend+1, ntstep
 
           if(myid.eq.0) then
-            print*,"i,t,<z>: ",i,t,distance
-            write(11,*)i,t,distance,ibunch
+            print*,"i: ",i,t,distance,ibunch,Ebunch(1:Nbunch)%Npt
+            write(11,*)i,t,distance,ibunch,Ebunch(1:Nbunch)%Npt
           endif
 
           post(3)=distance
@@ -1973,6 +1987,10 @@
            
             !//sum up the space-charge fields from all bunches/bins
             do ib = 1, ibunch
+
+                  ! Skip any empty or neutral bunches
+                  IF(is_zero(Np(ib)) .OR. is_zero(Ebunch(ib)%Charge)) CYCLE
+
               ! deposit particles onto grid to obtain charge density of each bunch/bin.
               if(flagazmuth.eq.1) then
                 call chgdenstest_Depositor(Ebunch(ib),chgdens,Ageom,grid2d,&
@@ -2348,6 +2366,11 @@
               !write(12,100)distance,offset1,offset2
 !100          ! format(3(1x,e18.10))
             end if
+
+            ! Implement any interactions that may be defined for the simulation
+            IF(flag_interact == 1) THEN
+              CALL interact_all(Ebunch(1:Nbunch), distance, dzz)
+            ENDIF
 
             ! Remove lost particles from the bunch - periodic structures
             if(associated(Blnelem(icell)%prfq).or.associated(Blnelem(icell)%pdtl)) then
@@ -2968,6 +2991,9 @@
         call destruct_FieldQuant(Potential)
         print*,"before  destruct4: "
         call destruct_CompDom(Ageom)
+
+        ! Clean up particle interactions
+        IF(flag_interact == 1) CALL destruct_interactions()
 
         call end_Output(time)
 

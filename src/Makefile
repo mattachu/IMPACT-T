@@ -16,10 +16,12 @@ FFLAGS = -O3
 OBJECTS = \
 	NumConst.o PhysConst.o Pgrid.o Data.o \
 	Timer.o Transpose.o Fldmger.o Ptclmger.o FFT.o \
+	Calculation.o QuickSort.o \
 	BPM.o CCL.o CCDTL.o DTL.o SC.o DriftTube.o Quadrupole.o Multipole.o ConstFoc.o \
 	SolRF.o Sol.o Dipole.o EMfld.o EMfldCart.o EMfldCyl.o EMfldAna.o \
 	RFQ.o Fieldmap.o \
 	BeamLineElem.o CompDom.o BeamBunch.o Depositor.o Ranger.o Field.o Distribution.o \
+	Interaction.o \
 	Input.o Output.o AccSimulator.o main.o	
 
 #**************************************************************************
@@ -68,13 +70,15 @@ NumConst.o :
 Pgrid.o :
 PhysConst.o :
 Bessel.o :
+Calculation.o :
 FFT.o : Timer.o Transpose.o
 Fldmger.o : Timer.o Pgrid.o
 Ptclmger.o : Timer.o Pgrid.o
+QuickSort.o :
 Timer.o :
 Transpose.o : Timer.o
 BeamBunch.o : Timer.o PhysConst.o BeamLineElem.o CompDom.o Pgrid.o \
-							Fldmger.o Data.o
+							Fldmger.o Data.o Calculation.o
 BeamLineElem.o : Quadrupole.o Multipole.o DriftTube.o CCL.o CCDTL.o DTL.o \
 								 SC.o BPM.o ConstFoc.o SolRF.o Dipole.o EMfld.o EMfldAna.o \
 								 EMfldCyl.o EMfldCart.o RFQ.o Fieldmap.o
@@ -92,6 +96,7 @@ EMfldCyl.o : PhysConst.o Data.o
 EMfldCart.o : PhysConst.o Data.o
 Field.o : Timer.o CompDom.o Pgrid.o FFT.o PhysConst.o Transpose.o Fldmger.o
 Fieldmap.o : PhysConst.o Data.o
+Interaction.o : BeamBunch.o PhysConst.o Input.o QuickSort.o
 Multipole.o : PhysConst.o Data.o
 Quadrupole.o : PhysConst.o Data.o
 Ranger.o : Pgrid.o
@@ -101,7 +106,8 @@ Sol.o : PhysConst.o Data.o
 SolRF.o : PhysConst.o Data.o
 AccSimulator.o : Pgrid.o CompDom.o Field.o BeamLineElem.o Ptclmger.o \
 								 BeamBunch.o Timer.o Input.o Output.o Data.o PhysConst.o \
-								 NumConst.o Distribution.o Ranger.o Depositor.o
+								 NumConst.o Distribution.o Ranger.o Depositor.o \
+								 Interaction.o
 Input.o :
 Output.o : Timer.o BeamBunch.o PhysConst.o
 main.o : AccSimulator.o

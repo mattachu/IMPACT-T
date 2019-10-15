@@ -14,10 +14,11 @@
 ! more information needed by the integrator:
 ! phase-space dimension, number of particles, a series of flags
 ! that set the type of integrator, error study, diagnostics, and
-! image charge, and the cutoff distance for the image charge
+! image charge, the cutoff distance for the image charge,
+! and a flag whether to include interactions
 !
-! PSdim  Nptcl   integF  errF  diagF  imchgF  imgCutOff (m)
-  6      100000  1       0     2      0       0.0
+! PSdim  Nptcl   integF  errF  diagF  imchgF  imgCutOff (m) interactF
+  6      100000  1       0     2      0       0.0           0
 !
 !
 ! information about mesh: number of points in x, y, and z, type

@@ -19,6 +19,8 @@
         use Pgrid2dclass
         use Fldmgerclass
         use Dataclass
+        USE CalculationClass
+
         type BeamBunch
           !private
           double precision :: Current !< beam current
@@ -34,6 +36,9 @@
           module procedure lost_BeamBunch_without_dL
           module procedure lost_BeamBunch_with_dL
         end interface lost_BeamBunch
+        interface addto_BeamBunch
+          module procedure addto_BeamBunch_copy
+        end interface addto_BeamBunch
 
       contains
         !--------------------------------------------------------------------------------------
@@ -2910,6 +2915,167 @@
         t_ntrslo = t_ntrslo + elapsedtime_Timer( t0 )
 
         end subroutine kick2tBd0_BeamBunch
+
+
+
+        ! Copy particles from a source bunch to a target bunch
+        SUBROUTINE addto_BeamBunch_copy(this, source_bunch, particle_ids)
+          ! Parameters
+          TYPE(BeamBunch), INTENT(INOUT) :: this
+          TYPE(BeamBunch), INTENT(IN)    :: source_bunch
+          INTEGER,         INTENT(IN)    :: particle_ids(:)
+          ! Variables
+          INTEGER :: array_size, number_to_copy
+          INTEGER :: last_particle, Npt_old
+
+          ! Particle counts
+          number_to_copy = SIZE(particle_ids)
+          array_size = SIZE(source_bunch%Pts1, 2)
+          last_particle = this%Nptlocal
+
+          ! Copy particles
+          this%Pts1(:, last_particle+1:last_particle+number_to_copy) &
+            = source_bunch%Pts1(:, particle_ids)
+
+          ! Adjust the number of particles
+          Npt_old = this%Npt
+          this%Npt      = this%Npt      + number_to_copy
+          this%Nptlocal = this%Nptlocal + number_to_copy
+          this%Nptrans  = this%Nptrans  + number_to_copy
+
+          ! Adjust the current
+          IF(is_zero(Npt_old)) THEN
+            ! Determine the current relative to source bunch
+            IF(  is_zero(source_bunch%Current) &
+            .OR. is_zero(source_bunch%Charge)) THEN
+              this%Current = 0.0
+            ELSE
+              this%Current = source_bunch%Current &
+                           * this%Charge / source_bunch%Charge &
+                           * this%Npt / source_bunch%Npt
+            ENDIF
+          ELSE
+            ! Determine the current relative to previous bunch count
+            this%Current = this%Current * this%Npt / Npt_old
+          ENDIF
+
+        END SUBROUTINE addto_BeamBunch_copy
+
+
+
+        ! Remove a specified particle from an existing bunch
+        SUBROUTINE removefrom_BeamBunch(this, particle_ids)
+          ! Parameters
+          TYPE(BeamBunch), INTENT(INOUT) :: this
+          INTEGER,         INTENT(IN)    :: particle_ids(:)
+          ! Variables
+          DOUBLE PRECISION, ALLOCATABLE :: new_Pts1(:,:)
+          INTEGER :: number_of_particles, number_to_remove, array_size, Npt_old
+          INTEGER :: i, from, to
+
+          ! Create new array
+          number_of_particles = this%Nptlocal
+          number_to_remove = SIZE(particle_ids)
+          array_size = SIZE(this%Pts1, 2)
+          ALLOCATE(new_Pts1(6, array_size))
+          new_Pts1 = 0.0d0
+
+          ! Copy particles that aren't lost
+          DO i = 0, number_to_remove
+            ! Find first and last particles to copy (before lost particle)
+            IF(i == 0) THEN
+                from = 1
+            ELSE
+                from = particle_ids(i) + 1
+            ENDIF
+            IF(i == number_to_remove) THEN
+                to = array_size
+            ELSE
+                to = particle_ids(i+1) - 1
+            ENDIF
+            ! Copy particles
+            new_Pts1(:, from-i:to-i) = this%Pts1(:, from:to)
+          ENDDO
+
+          ! Add lost particles at the end of the array
+          new_Pts1(:, array_size-number_to_remove+1:array_size) = 0.0
+          new_Pts1(5, array_size-number_to_remove+1:array_size) = -1.0e5
+
+          ! Apply changes to bunch array
+          this%Pts1 = new_Pts1
+
+          ! Reduce the number of particles
+          this%Nptlocal = this%Nptlocal - number_to_remove
+          this%Nptrans  = this%Nptrans  - number_to_remove
+          Npt_old       = this%Npt
+          this%Npt      = this%Npt - number_to_remove
+          this%Current  = this%Current * this%Npt / Npt_old
+
+        END SUBROUTINE removefrom_BeamBunch
+
+
+
+        ! Get reference speed of bunch from the reference particle
+        DOUBLE PRECISION FUNCTION getreferencespeed_BeamBunch(bunch)
+          ! Parameters
+          TYPE(BeamBunch), INTENT(IN) :: bunch
+          ! Variables
+          DOUBLE PRECISION :: gamma, beta
+
+          ! Calculate and return bunch reference velocity
+          gamma = -bunch%refptcl(6)
+          beta = sqrt(1.0d0 - 1.0d0/gamma/gamma)
+          getreferencespeed_BeamBunch = beta*clight
+
+        END FUNCTION getreferencespeed_BeamBunch
+
+
+
+        ! Get reference energy of bunch from the reference particle
+        DOUBLE PRECISION FUNCTION getreferenceenergy_BeamBunch(bunch)
+          ! Parameters
+          TYPE(BeamBunch), INTENT(IN) :: bunch
+          ! Variables
+          DOUBLE PRECISION :: gamma
+
+          ! Calculate and return bunch reference energy
+          gamma = -bunch%refptcl(6)
+          getreferenceenergy_BeamBunch = (gamma - 1.0d0)*bunch%Mass
+
+        END FUNCTION getreferenceenergy_BeamBunch
+
+
+
+        ! Get reference phase of bunch form the reference particle
+        DOUBLE PRECISION FUNCTION getreferencephase_BeamBunch(bunch)
+          ! Parameters
+          TYPE(BeamBunch), INTENT(IN) :: bunch
+
+          ! Return value
+          getreferencephase_BeamBunch = bunch%refptcl(5)
+
+        END FUNCTION getreferencephase_BeamBunch
+
+
+
+        ! Get particle current of bunch form the reference particle
+        DOUBLE PRECISION FUNCTION getparticlecurrent_BeamBunch(bunch)
+          ! Parameters
+          TYPE(BeamBunch), INTENT(IN) :: bunch
+          ! Variables
+          DOUBLE PRECISION :: speed, z_length, density
+
+          ! Get the speed and average particle density of the bunch
+          speed = getreferencespeed_BeamBunch(bunch)
+          z_length = (MAXVAL(bunch%Pts1(3,:)) - MINVAL(bunch%Pts1(3,:)))/Scxlt
+          density = bunch%Npt/z_length
+
+          ! Return value
+          getparticlecurrent_BeamBunch = speed * density
+
+        END FUNCTION getparticlecurrent_BeamBunch
+
+
 
         !//release all the memory held by BeamBunch.
         subroutine destruct_BeamBunch(this)
