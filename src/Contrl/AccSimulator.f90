@@ -602,7 +602,7 @@
             call setparam_RFQ(beamln21(irfq),tmprfq)
             Blnelem(i) = assign_BeamLineElem(beamln21(irfq))
           !*****************%%%%%%%%%%%%%%%
-          else if (bitype(i).eq.202) then
+          else if (bitype(i).eq.7) then
             ifldmp=ifldmp+1
             call construct_Fieldmap(beamln22(ifldmp),bnseg(i),bmpstp(i),bitype(i),blength(i))
             tmpfldmp(1)=val0(i)
