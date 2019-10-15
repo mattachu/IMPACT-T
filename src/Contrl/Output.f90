@@ -2082,7 +2082,8 @@
         Mass=this%Mass/1000000.0
         Ibeam =this%Current*1000.0
         Ne =Ncell
-        Np = this%Npt
+        CALL MPI_REDUCE(SIZE(this%Pts1, 2), Np, 1, MPI_INTEGER, MPI_SUM, &
+                        0, MPI_COMM_WORLD, ierr)
         if (my_rank.eq.0) then
             open(nfile,file="rfq"//Trim(ID)//".plt",access="stream",status="replace",action ="Write")
             write(nfile) char2

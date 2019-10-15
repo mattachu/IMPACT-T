@@ -33,6 +33,7 @@
         double precision :: Scb0 !< magnetic field scale
         double precision :: Scrho0 !< charge density scale
         double precision :: Mass_0 !< static mass
+        DOUBLE PRECISION :: k_B !< Boltzmann constant
       contains
         subroutine constructT_PhysConst(dt,reffreq,mass)
         double precision, intent(in) :: dt,reffreq,mass
@@ -52,6 +53,7 @@
         Scb0 = Scm0/(Scxlt*Scq0)
         Scrho0 = Epsilon0/(Scxlt*Scxlt)
         Mass_0=mass
+        k_B = 1.380649d-23 ! J/K
 
         end subroutine constructT_PhysConst
  
