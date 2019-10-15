@@ -28,9 +28,10 @@ OBJECTS = \
 vpath %.f90 Appl Contrl DataStruct Func
 
 #**************************************************************************
-# Define name of output executable
+# Define name and location of output executable
 
 EXENAME = ImpactTexe
+INSTALLDIR = ~/Simulations/Current
 
 #************************************************************************
 # disable predefined suffixes and define your own set of allowed suffixes
@@ -107,5 +108,7 @@ Output.o : Timer.o BeamBunch.o PhysConst.o
 main.o : AccSimulator.o
 
 #***********************************************************************
+install: $(EXENAME)
+	cp $(EXENAME) $(INSTALLDIR)/
 clean:
-	-rm $(EXENAME) *.o *.mod */*.o */*.mod
+	-rm -f $(EXENAME) *.o *.mod */*.o */*.mod
