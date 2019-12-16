@@ -63,9 +63,12 @@
         !! \# of beam elems, type of integrator.
         !! FlagImage: switch flag for image space-charge force calculation: "1" for yes, 
         !! otherwise for no. 
+        !! FlagRFQ: if RFQ cells are present then create output files
+        !!          `rfq.dst` and `rfq.plt`
         !> @{
         integer :: Nx,Ny,Nz,Nxlocal,Nylocal,Nzlocal,Flagbc,&
                             Nblem,Flagmap,Flagdiag,FlagImage
+        integer :: FlagRFQ = 0
         !> @}
 
         !> @name                    
@@ -571,6 +574,7 @@
           ! Add RFQ 2015-10-19
           else if(bitype(i).eq.6) then
             irfq = irfq + 1
+            FlagRFQ = 1
             call construct_RFQ(beamln21(irfq),bnseg(i),bmpstp(i),bitype(i),blength(i))
             tmprfq(1) = val0(i)
             tmprfq(2) = val1(i)
@@ -1304,9 +1308,11 @@
                    Nz,qchg,Ebunch(ib)%Mass,60+ib-1)
         enddo
         !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        do ib=1, Nbunch
-          call plt_Output(110+ib-1,Nblem,Ebunch(ib),Bfreq,ib)
-        end do
+        if(FlagRFQ.eq.1) then
+            do ib=1, Nbunch
+              call plt_Output(110+ib-1,Nblem,Ebunch(ib),Bfreq,ib)
+            end do
+        end if
         !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         dzz = betazini*Clight*dtless*Dt
         zmin = 0.0d0
@@ -2354,11 +2360,13 @@
             end if
 
             !~~~~~~~~~~~~~~~******************
-            if ((distance.le.zBlnelem(2,icell)) .and. &
-               ((distance+dzz).ge.zBlnelem(2,icell)))then
-              do ib=1, Nbunch
-                call plt_Output(110+ib-1,Ebunch(ib), icell, sgcenter(:,ib), ib, np0(ib))
-              end do
+            if(FlagRFQ.eq.1) then
+                if ((distance.le.zBlnelem(2,icell)) .and. &
+                   ((distance+dzz).ge.zBlnelem(2,icell)))then
+                  do ib=1, Nbunch
+                    call plt_Output(110+ib-1,Ebunch(ib), icell, sgcenter(:,ib), ib, np0(ib))
+                  end do
+                end if
             end if
             !~~~~~~~~~~~~~~~~~~**************
 
@@ -2755,7 +2763,7 @@
         do ib = 1, Nbunch
           i = 50+ib-1 
           call phase_Output(i,Ebunch(ib),1)
-          call dst_Output(i+10,Ebunch(ib),Bfreq,ib) ! by LHP
+          if(FlagRFQ.eq.1) call dst_Output(i+10,Ebunch(ib),Bfreq,ib) ! by LHP
           qchg = Ebunch(ib)%Current/Scfreq
           call sliceprocdep_Output(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
                    Nz,qchg,Ebunch(ib)%Mass,70+ib-1)
