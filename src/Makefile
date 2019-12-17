@@ -20,7 +20,7 @@ OBJECTS = \
 	SolRF.o Sol.o Dipole.o EMfld.o EMfldCart.o EMfldCyl.o EMfldAna.o \
 	RFQ.o Fieldmap.o \
 	BeamLineElem.o CompDom.o BeamBunch.o Depositor.o Ranger.o Field.o Distribution.o \
-	Input.o Output.o AccSimulator.o main.o	
+	Input.o Output.o AccSimulator.o main.o
 
 #**************************************************************************
 # Search path directives
@@ -31,7 +31,7 @@ vpath %.f90 Appl Contrl DataStruct Func
 # Define name and location of output executable
 
 EXENAME = ImpactTexe
-INSTALLDIR = ~/Simulations/Current
+INSTALLDIR = ~/bin
 
 #************************************************************************
 # disable predefined suffixes and define your own set of allowed suffixes
