@@ -36,7 +36,7 @@ OBJS2 = \
 # Change this line if you don't like 'a.out'.
 
 EXENAME = ImpactTexe
-INSTALLDIR = ~/Simulations/Current
+INSTALLDIR = ~/bin
 
 #************************************************************************
 # disable predefined suffixes and define your own set of allowed suffixes
