@@ -36,6 +36,7 @@ OBJS2 = \
 # Change this line if you don't like 'a.out'.
 
 EXENAME = ImpactTexe
+INSTALLDIR = ~/Simulations/Current
 
 #************************************************************************
 # disable predefined suffixes and define your own set of allowed suffixes
@@ -72,5 +73,7 @@ $(EXENAME):  $(OBJS)
 	cp  Timer.o Transpose.o Fldmger.o Ptclmger.o FFT.o Func	
 	cp  NumConst.o PhysConst.o Data.o Pgrid.o DataStruct 
 #***********************************************************************
+install: $(EXENAME)
+	cp $(EXENAME) $(INSTALLDIR)/
 clean:
 	-rm *.o $(EXENAME) *.mod */*.o
