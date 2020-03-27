@@ -1,6 +1,6 @@
 ImpactGUI is a Python GUI for the ImpactT and ImpactZ codes.
 It can be used on Windows, MAC and Linux/Unix systems.
-To use the ImpactGUI, one needs to install 
+To use the ImpactGUI, one needs to install
 Python3 packages Tkinter, Numpy, Scipy and Matplotlib.
 To run the Impact code under the GUI, one can either put the executables
 of ImpactT (ImpactTexe) and ImpactZ (ImpactZexe) under the
