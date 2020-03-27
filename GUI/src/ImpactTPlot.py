@@ -18,7 +18,7 @@ from scipy.stats import gaussian_kde
 import numpy as np
 
 
-import ParticlePlot, SlicePlot
+import ParticlePlot, SlicePlot, MultiBunchPlot
 _height=300
 _width =200
 
@@ -157,6 +157,29 @@ class AdvancedPlotControlFrame(tk.Toplevel):
 
         rowN+=1
 
+        self.t = (ttk.Separator(self.frame2, orient=tk.HORIZONTAL)
+                     .grid(row=rowN, column=0, columnspan=2, sticky="we"))
+        rowN += 1
+        self.label_MB = tk.Label(self.frame2, text='Multi-bunch plots')
+        self.label_MB.grid(row=rowN, column=0, columnspan=2, sticky="we")
+        rowN += 1
+        self.button_MBBeamSizePlot = tk.Button(self.frame2,
+                                               text='Beam size',
+                                               command=self.MBBeamSizePlot)
+        self.button_MBBeamSizePlot.grid(row=rowN, column=0, columnspan=2,
+                                        padx=5, pady=1, sticky="nswe")
+        rowN += 1
+        self.button_MBEmittancePlot = tk.Button(self.frame2,
+                                                text='Emittance',
+                                                command=self.MBEmittancePlot)
+        self.button_MBEmittancePlot.grid(row=rowN, column=0, columnspan=1,
+                                         padx=5, pady=1, sticky="nswe")
+        self.button_MBEmitGrowthPlot = tk.Button(self.frame2,
+                                                 text='Emittance growth',
+                                                 command=self.MBEmitGrowthPlot)
+        self.button_MBEmitGrowthPlot.grid(row=rowN, column=1, columnspan=1,
+                                          padx=5, pady=1, sticky="nswe")
+        rowN += 1
 
 
     def overallPlot(self):
@@ -339,6 +362,27 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         l=Plot4orderFrame(plotWindow,filename)
         l.pack()
 
+    def MBBeamSizePlot(self):
+        print('Multi-bunch beam size plot')
+        plotWindow = tk.Toplevel(self)
+        plotWindow.title('Multi-bunch beam size plot')
+        l = PlotMBBeamSizeFrame(plotWindow)
+        l.pack()
+
+    def MBEmittancePlot(self):
+        print('Multi-bunch emittance plot')
+        plotWindow = tk.Toplevel(self)
+        plotWindow.title('Multi-bunch emittance plot')
+        l = PlotMBEmittanceFrame(plotWindow)
+        l.pack()
+
+    def MBEmitGrowthPlot(self):
+        print('Multi-bunch emittance growth plot')
+        plotWindow = tk.Toplevel(self)
+        plotWindow.title('Multi-bunch emittance growth plot')
+        l = PlotMBEmittanceGrowthFrame(plotWindow)
+        l.pack()
+
 class PlotBaseFrame(tk.Frame):
     """Basic plot object that other objects inherit from"""
     def __init__(self, parent, per_bunch=True):
@@ -397,8 +441,8 @@ class PlotBaseFrame(tk.Frame):
         """Create and draw the canvas object"""
         self.canvas = FigureCanvasTkAgg(self.fig, self)
         self.canvas.draw()
-        self.canvas.get_tk_widget().pack(side=tk.BOTTOM, 
-                                         fill=tk.BOTH, 
+        self.canvas.get_tk_widget().pack(side=tk.BOTTOM,
+                                         fill=tk.BOTH,
                                          expand=True)
     def create_toolbar(self):
         """Create the bottom toolbar"""
@@ -423,7 +467,7 @@ class PlotBaseFrame(tk.Frame):
         if selected_bunch == 'All':
             return default_filelist
         else:
-            return self.get_bunch_filelist(default_filelist, 
+            return self.get_bunch_filelist(default_filelist,
                                            int(selected_bunch))
     def get_bunch_filelist(self, filelist, bunch):
         for idx, filename in enumerate(filelist):
@@ -692,7 +736,7 @@ class TemperatureFrame(PlotBaseFrame):
             else:
                 ycol = 5
             y = [float(xrt[ycol])*float(xrt[ycol]) for xrt in linesList]
-            self.subfig.plot(x, y, 
+            self.subfig.plot(x, y,
                              color=col[i],
                              linestyle=lineType[i],
                              linewidth=linew[i],
@@ -732,7 +776,7 @@ class PlotHighOrderBaseFrame(PlotBaseFrame):
     def create_yaxis_selector(self):
         self.yaxis_list = [direction for direction in self.particle_directions]
         self.yaxis_default = tk.StringVar(self.option_frame, 'X (mm)')
-        self.yaxis_label = tk.Label(self.option_frame, 
+        self.yaxis_label = tk.Label(self.option_frame,
                                     text="Select y-axis dimension: ")
         self.yaxis_label.pack(side='left')
         self.yaxis_select = ttk.Combobox(self.option_frame,
@@ -782,7 +826,7 @@ class PlotHighOrderBaseFrame(PlotBaseFrame):
         if (   (xMax - xMin) > IMPACT_T_sciMaxLimit
             or (xMax - xMin) < IMPACT_T_sciMinLimit):
             self.subfig.xaxis.set_major_formatter(IMPACT_T_SciFormatter)
-        if (   (yMax - yMin) > IMPACT_T_sciMaxLimit 
+        if (   (yMax - yMin) > IMPACT_T_sciMaxLimit
             or (yMax - yMin) < IMPACT_T_sciMinLimit):
             self.subfig.yaxis.set_major_formatter(IMPACT_T_SciFormatter)
 
@@ -806,3 +850,92 @@ class Plot4orderFrame(PlotHighOrderBaseFrame):
     def get_yaxis_parameters(self):
         ycol, ylabel = PlotHighOrderBaseFrame.get_yaxis_parameters(self)
         return [ycol, 'Square square root of 4th moment of ' + ylabel]
+
+class PlotMultiBunchBaseFrame(PlotBaseFrame):
+    def __init__(self, parent):
+        PlotBaseFrame.__init__(self, parent, per_bunch=True)
+        box = self.subfig.get_position()
+        self.subfig.set_position([box.x0*1.4, box.y0, box.width, box.height])
+        self.plot()
+    def create_bunch_selector(self, Nbunch, per_bunch=True):
+        """Add selector (override base class, max bunch rather than single)."""
+        if per_bunch and Nbunch > 1:
+            self.bunch_list = ['All']
+            self.bunch_list.extend(range(1, Nbunch + 1))
+            self.bunch_default = tk.StringVar(self.option_frame, 'All')
+            self.bunch_label = tk.Label(self.option_frame,
+                                        text='Include bunches up to: ')
+            self.bunch_label.pack(side='left')
+            self.bunch_select = ttk.Combobox(self.option_frame,
+                                             text=self.bunch_default,
+                                             width=6,
+                                             values=self.bunch_list)
+            self.bunch_select.pack(fill='both', expand=1, side='left')
+    def get_max_bunch(self):
+        """Find which bunch is selected in the option frame."""
+        selected_bunch = self.get_selected_bunch()
+        if selected_bunch == 'All':
+            return self.Nbunch
+        else:
+            return int(selected_bunch)
+
+class PlotMBBeamSizeFrame(PlotMultiBunchBaseFrame):
+    """Frame to plot rms beam sizes for selected bunches."""
+    def __init__(self, parent):
+        PlotMultiBunchBaseFrame.__init__(self, parent)
+    def create_option_frame(self, Nbunch, per_bunch=True):
+        """Add options (override base class, removing the x-axis selector)."""
+        self.option_frame = tk.Frame(self)
+        self.option_frame.pack()
+        self.create_bunch_selector(Nbunch)
+        self.create_plot_button()
+    def plot(self):
+        """Plot rms beam size and compare with experimental results."""
+        experimental_results = MultiBunchPlot.load_experimental_results(
+            'experimental_data.txt')
+        xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
+        combined_xdata = MultiBunchPlot.combine_bunch_values(xdata)
+        self.subfig.cla()
+        MultiBunchPlot.plot_beam_size(self.subfig.axes, xdata,
+                                      experimental_results, combined_xdata)
+        self.canvas.draw()
+
+class PlotMBEmittanceFrame(PlotMultiBunchBaseFrame):
+    """Frame to plot emittance for selected bunches together."""
+    def __init__(self, parent):
+        PlotMultiBunchBaseFrame.__init__(self, parent)
+    def create_option_frame(self, Nbunch, per_bunch=True):
+        """Add options (override base class, removing the x-axis selector)."""
+        self.option_frame = tk.Frame(self)
+        self.option_frame.pack()
+        self.create_bunch_selector(Nbunch)
+        self.create_plot_button()
+    def plot(self):
+        """Plot average of x and y emittance for selected bunches."""
+        xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
+        combined_xdata = MultiBunchPlot.combine_bunch_values(xdata)
+        combined_ydata = MultiBunchPlot.combine_bunch_values(ydata)
+        self.subfig.cla()
+        MultiBunchPlot.plot_emittance(self.subfig.axes, xdata, ydata,
+                                      combined_xdata, combined_ydata)
+        self.canvas.draw()
+
+class PlotMBEmittanceGrowthFrame(PlotMultiBunchBaseFrame):
+    """Frame to plot emittance growth for selected bunches together."""
+    def __init__(self, parent):
+        PlotMultiBunchBaseFrame.__init__(self, parent)
+    def create_option_frame(self, Nbunch, per_bunch=True):
+        """Add options (override base class, removing the x-axis selector)."""
+        self.option_frame = tk.Frame(self)
+        self.option_frame.pack()
+        self.create_bunch_selector(Nbunch)
+        self.create_plot_button()
+    def plot(self):
+        """Plot growth of average x and y emittance for selected bunches."""
+        xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
+        combined_xdata = MultiBunchPlot.combine_bunch_values(xdata)
+        combined_ydata = MultiBunchPlot.combine_bunch_values(ydata)
+        self.subfig.cla()
+        MultiBunchPlot.plot_emittance_growth(self.subfig.axes, xdata, ydata,
+                                             combined_xdata, combined_ydata)
+        self.canvas.draw()
