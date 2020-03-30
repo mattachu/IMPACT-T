@@ -4,7 +4,12 @@ import sys
 
 def plot_all(bunch_count):
     """Run and save all plots consecutively."""
-    experimental_results = load_experimental_results('experimental_data.txt')
+    try:
+        experimental_results = load_experimental_results('experimental_data.txt')
+    except FileNotFoundError:
+        print('File not found: experimental_data.txt. '
+              'Continuing without experimental data.')
+        experimental_results = []
     xdata, ydata = load_statistics_data(bunch_count)
     combined_xdata = combine_bunch_values(xdata)
     combined_ydata = combine_bunch_values(ydata)
