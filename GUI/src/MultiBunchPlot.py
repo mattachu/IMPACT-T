@@ -4,13 +4,21 @@ import sys
 
 def plot_all(bunch_count):
     """Run and save all plots consecutively."""
-    experimental_results = load_experimental_results('experimental_data.txt')
+    try:
+        experimental_results = load_experimental_results('experimental_data.txt')
+    except FileNotFoundError:
+        print('File not found: experimental_data.txt. '
+              'Continuing without experimental data.')
+        experimental_results = []
     xdata, ydata = load_statistics_data(bunch_count)
     combined_xdata = combine_bunch_values(xdata)
     combined_ydata = combine_bunch_values(ydata)
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
-    plot_beam_size(axes, xdata, experimental_results, combined_xdata)
+    plot_beam_size(axes, xdata, [], combined_xdata)
     figure.savefig('beam-size')
+    figure, axes = matplotlib.pyplot.subplots(dpi=300)
+    plot_beam_size(axes, xdata, experimental_results, combined_xdata)
+    figure.savefig('beam-size-vs-experiment')
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
     plot_emittance(axes, xdata, ydata, combined_xdata, combined_ydata)
     figure.savefig('emittance')
