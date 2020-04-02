@@ -1,6 +1,7 @@
 import matplotlib.pyplot
 import numpy
 import sys
+import pathlib
 
 def plot_all(bunch_count):
     """Run and save all plots consecutively."""
@@ -32,6 +33,8 @@ def get_input_filename(bunch):
         filename = 'ImpactT.in'
     else:
         filename = f'ImpactT{bunch}.in'
+    if pathlib.Path(filename+'.rendered').is_file():
+        filename += '.rendered'
     return filename
 
 def get_bunch_count():
