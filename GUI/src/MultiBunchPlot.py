@@ -1,6 +1,7 @@
 import matplotlib.pyplot
 import numpy
 import sys
+import pathlib
 
 def plot_all(bunch_count):
     """Run and save all plots consecutively."""
@@ -26,23 +27,25 @@ def plot_all(bunch_count):
     plot_emittance_growth(axes, xdata, ydata, combined_xdata, combined_ydata)
     figure.savefig('emittance-growth')
 
+def get_input_filename(bunch):
+    """Return the filename of the input file for a particular bunch"""
+    if bunch == 1:
+        filename = 'ImpactT.in'
+    else:
+        filename = f'ImpactT{bunch}.in'
+    if pathlib.Path(filename+'.rendered').is_file():
+        filename += '.rendered'
+    return filename
+
 def get_bunch_count():
-    """Count the number of input files"""
-    i = 1
-    while True:
-        try:
-            f = open(f'ImpactT{i+1}.in', 'r')
-        except FileNotFoundError:
-            break
-        else:
-            f.close()
-            i += 1
-    return i
+    """Get the number of bunches from the first input file"""
+    input = read_input_file(get_input_filename(1))
+    return int(input[1].split()[2])
 
 def get_bunch_counts(bunch_count):
     """Return a list of the particle counts for each bunch."""
-    filenames = [f'ImpactT{"" if i==0 else i+1}.in' for i in range(bunch_count)]
-    return [get_particle_count(filename) for filename in filenames]
+    input_filenames = [get_input_filename(i+1) for i in range(bunch_count)]
+    return [get_particle_count(filename) for filename in input_filenames]
 
 def get_particle_count(filename):
     """Get the macroparticle count from a given input file."""
