@@ -28,6 +28,24 @@ def plot_all(bunch_count):
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
     plot_emittance_growth(axes, xdata, ydata, combined_xdata, combined_ydata)
     figure.savefig('emittance-growth')
+    # Particle plots: initial
+    phase_space_data = load_phase_space_data(40, bunch_count)
+    figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
+    plot_phase_spaces(axes, phase_space_data, nx=100, ny=100)
+    figure.savefig('phase-space-initial')
+    # Particle plots: final
+    phase_space_data = load_phase_space_data(50, bunch_count)
+    figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
+    plot_phase_spaces(axes, phase_space_data, nx=100, ny=100)
+    figure.savefig('phase-space-final')
+    # Particle plots: BPMs
+    lattice = get_lattice()
+    bpm_list = get_bpms(lattice)
+    for location, filenumber in bpm_list:
+        phase_space_data = load_phase_space_data(filenumber, bunch_count)
+        figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
+        plot_phase_spaces(axes, phase_space_data, nx=100, ny=100)
+        figure.savefig('phase-space-' + location)
 
 def get_input_filename(bunch):
     """Return the filename of the input file for a particular bunch."""
@@ -43,6 +61,16 @@ def get_bunch_count():
     """Get the number of bunches from the first input file."""
     input = read_input_file(get_input_filename(1))
     return int(input[1].split()[2])
+
+def get_lattice():
+    """Read the lattice from the first input file."""
+    input = read_input_file(get_input_filename(1))
+    return [line.split() for line in input[9:]]
+
+def get_bpms(lattice):
+    """Return the location and file number of all BPMs in the lattice."""
+    return [(str(float(elem[4])*1000) + ' mm', int(elem[2]))
+            for elem in lattice if elem[3]=='-2']
 
 def get_bunch_counts(bunch_count):
     """Return a list of the particle counts for each bunch."""
@@ -75,6 +103,13 @@ def load_statistics_data(bunch_count):
         with open(f'fort.{i+1}025', 'r') as f:
             ydata.append([line.split() for line in f.readlines()])
     return xdata, ydata
+
+def load_phase_space_data(filenumber, bunch_count):
+    """Load phase space data per bunch from particle output files."""
+    data = numpy.array(numpy.loadtxt(f'fort.{filenumber}'))
+    for i in range(1, bunch_count):
+        data = numpy.concatenate((data, numpy.loadtxt(f'fort.{filenumber+i}')))
+    return data
 
 def combine_bunch_values(data_in):
     """Combine values of separate bunches into a single summary dataset."""
@@ -187,6 +222,49 @@ def plot_emittance_growth_single(axes, xdata, ydata, fmt, label):
     initial_emittance = max(e[0], 1.0e-10)
     growth = [emittance/initial_emittance - 1 for emittance in e]
     axes.plot(t, growth, fmt, linewidth=1, label=label)
+
+def plot_phase_space(axes, xdata, ydata, xlabel, ylabel, nx=100, ny=100):
+    if nx < 10:
+        nx = 10
+    if ny < 10:
+        ny = 10
+    xmax = numpy.max(xdata)
+    ymax = numpy.max(ydata)
+    xmin = numpy.min(xdata)
+    ymin = numpy.min(ydata)
+    hx = (xmax - xmin)/(nx - 1)
+    hy = (ymax - ymin)/(ny - 1)
+    count = numpy.zeros([ny, nx])
+    for i in range(len(xdata)):
+        ix = int((xdata[i] - xmin)/hx)
+        iy = int((ydata[i] - ymin)/hy)
+        if ix >= nx - 1:
+            ix = nx - 2
+        if iy >= ny - 1:
+            iy = ny - 2
+        ab = (xdata[i] - (xmin + ix * hx))/hx
+        cd = (ydata[i] - (ymin + iy * hy))/hy
+        count[iy  ,ix  ] += (1.0-ab) * (1.0-cd)
+        count[iy+1,ix  ] += (    ab) * (1.0-cd)
+        count[iy  ,ix+1] += (1.0-ab) * (    cd)
+        count[iy+1,ix+1] += (    ab) * (    cd)
+    count[count == 0.0] = -0.0000001
+    tmap = matplotlib.pyplot.cm.jet
+    tmap.set_under('white',0.)
+    axes.imshow(count, cmap=tmap, origin='lower', interpolation='bilinear',
+                vmin=0.0000001, extent=(xmin,xmax,ymin,ymax), aspect="auto")
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+
+def plot_phase_spaces(axes, data, nx=100, ny=100):
+    plot_phase_space(axes[0,0], data.T[0]*1000, data.T[1],
+                     'x (mm)', 'px (dimensionless βγ)', nx, ny)
+    plot_phase_space(axes[0,1], data.T[2]*1000, data.T[3],
+                     'y (mm)', 'py (dimensionless βγ)', nx, ny)
+    plot_phase_space(axes[1,0], data.T[4]*1000, data.T[5],
+                     'z (mm)', 'pz (dimensionless βγ)', nx, ny)
+    plot_phase_space(axes[1,1], data.T[0]*1000, data.T[2]*1000,
+                     'x (mm)', 'y (mm)', nx, ny)
 
 if __name__ == '__main__':
     matplotlib.use('agg') # Use the AGG renderer to produce PNG output

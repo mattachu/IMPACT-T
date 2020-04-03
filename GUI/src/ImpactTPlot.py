@@ -32,6 +32,8 @@ IMPACT_T_ADVANCED_PLOT_TYPE= {'Centriod location (mm)'    :2,
 IMPACT_T_SciFormatter = FormatStrFormatter('%2.1E')
 IMPACT_T_sciMaxLimit  = 99999 *2
 IMPACT_T_sciMinLimit  = 0.0001*2
+IMPACT_T_initial_slice = 40
+IMPACT_T_final_slice   = 50
 
 class AdvancedPlotControlFrame(tk.Toplevel):
     """Output"""
@@ -166,8 +168,13 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         self.button_MBBeamSizePlot = tk.Button(self.frame2,
                                                text='Beam size',
                                                command=self.MBBeamSizePlot)
-        self.button_MBBeamSizePlot.grid(row=rowN, column=0, columnspan=2,
+        self.button_MBBeamSizePlot.grid(row=rowN, column=0, columnspan=1,
                                         padx=5, pady=1, sticky="nswe")
+        self.button_MBPhaseSpacePlot = tk.Button(self.frame2,
+                                                 text='Phase space',
+                                                 command=self.MPPhaseSpacePlot)
+        self.button_MBPhaseSpacePlot.grid(row=rowN, column=1, columnspan=1,
+                                          padx=5, pady=1, sticky="nswe")
         rowN += 1
         self.button_MBEmittancePlot = tk.Button(self.frame2,
                                                 text='Emittance',
@@ -381,6 +388,13 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         plotWindow = tk.Toplevel(self)
         plotWindow.title('Multi-bunch emittance growth plot')
         l = PlotMBEmittanceGrowthFrame(plotWindow)
+        l.pack()
+
+    def MPPhaseSpacePlot(self):
+        print('Multi-bunch phase space plot')
+        plotWindow = tk.Toplevel(self)
+        plotWindow.title('Multi-bunch phase space plot')
+        l = PlotMBPhaseSpaceFrame(plotWindow)
         l.pack()
 
 class PlotBaseFrame(tk.Frame):
@@ -939,4 +953,74 @@ class PlotMBEmittanceGrowthFrame(PlotMultiBunchBaseFrame):
         self.subfig.cla()
         MultiBunchPlot.plot_emittance_growth(self.subfig.axes, xdata, ydata,
                                              combined_xdata, combined_ydata)
+        self.canvas.draw()
+
+class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame,
+                            ParticlePlot.ParticleDensityFrame_weight2D):
+    """Frame to plot phase spaces for selected bunches together."""
+    def __init__(self, parent, filenumber=50):
+        PlotBaseFrame.__init__(self, parent, per_bunch=True)
+        self.plot()
+    def create_figure(self):
+        """Create four subplots (override base class)."""
+        self.fig, self.axes = matplotlib.pyplot.subplots(nrows=2, ncols=2,
+                                                         figsize=(8,6))
+        self.subfig = []
+        self.subfig.append(self.axes[0,0])
+        self.subfig.append(self.axes[0,1])
+        self.subfig.append(self.axes[1,0])
+        self.subfig.append(self.axes[1,1])
+        for subfig in self.subfig:
+            box = subfig.get_position()
+            subfig.set_position([box.x0*1.1, box.y0*1.1,
+                                 box.width, box.height*0.88])
+    def create_option_frame(self, Nbunch, per_bunch=True):
+        """Add options (override base class)."""
+        self.option_frame = tk.Frame(self)
+        self.option_frame.pack()
+        self.create_slice_selector()
+        self.create_bunch_selector(Nbunch)
+        self.create_grid_size_box()
+        self.create_plot_button()
+    def create_slice_selector(self):
+        """Add selector for which slice or BPM output to plot."""
+        self.slice_list = self.get_slice_list()
+        self.slice_default = tk.StringVar(self.option_frame, 'Final')
+        self.slice_label = tk.Label(self.option_frame,
+                                    text='Select phase space position: ')
+        self.slice_label.pack(fill='both', expand=1, side='left')
+        self.slice_select = ttk.Combobox(self.option_frame,
+                                         text=self.slice_default,
+                                         width=6,
+                                         values=list(self.slice_list))
+        self.slice_select.pack(fill='both', expand=1, side='left')
+    def create_grid_size_box(self):
+        """Add text box to set grid size for plot sampling."""
+        self.grid_size_label = tk.Label(self.option_frame, text='Grid size: ')
+        self.grid_size_label.pack(fill='both', expand=1, side='left')
+        self.grid_size = tk.Entry(self.option_frame, width=5)
+        self.grid_size.insert(0, '100')
+        self.grid_size.pack(fill='both', expand=1, side='left')
+    def get_slice_list(self):
+        """Get list of available phase space slices, including BPMs."""
+        slice_list = {'Initial': IMPACT_T_initial_slice}
+        lattice = MultiBunchPlot.get_lattice()
+        slice_list.update(MultiBunchPlot.get_bpms(lattice))
+        slice_list['Final'] = IMPACT_T_final_slice
+        return slice_list
+    def get_filenumber(self):
+        """Get the file number of the selected slice for plotting."""
+        return self.slice_list[self.slice_select.get()]
+    def get_grid_size(self):
+        """Get the selected grid size for plot sampling."""
+        return int(self.grid_size.get())
+    def plot(self):
+        """Load and plot phase space data for selected bunches."""
+        phase_space_data = MultiBunchPlot.load_phase_space_data(
+            self.get_filenumber(), self.get_max_bunch())
+        nx = self.get_grid_size()
+        ny = nx
+        for subfig in self.subfig:
+            subfig.cla()
+        MultiBunchPlot.plot_phase_spaces(self.axes, phase_space_data, nx, ny)
         self.canvas.draw()
