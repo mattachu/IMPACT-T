@@ -852,6 +852,7 @@ class Plot4orderFrame(PlotHighOrderBaseFrame):
         return [ycol, 'Square square root of 4th moment of ' + ylabel]
 
 class PlotMultiBunchBaseFrame(PlotBaseFrame):
+    """Base class for frames that combine data from multiple bunches."""
     def __init__(self, parent):
         PlotBaseFrame.__init__(self, parent, per_bunch=True)
         box = self.subfig.get_position()
