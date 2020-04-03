@@ -5,16 +5,19 @@ import pathlib
 
 def plot_all(bunch_count):
     """Run and save all plots consecutively."""
+    print('Loading experimental data...')
     try:
         experimental_results = load_experimental_results('experimental_data.txt')
     except FileNotFoundError:
         print('File not found: experimental_data.txt. '
               'Continuing without experimental data.')
         experimental_results = []
+    print('Loading statistical data...')
     xdata, ydata = load_statistics_data(bunch_count)
     combined_xdata = combine_bunch_values(xdata)
     combined_ydata = combine_bunch_values(ydata)
     # Beam size
+    print('Plotting beam size...')
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
     plot_beam_size(axes, xdata, [], combined_xdata)
     figure.savefig('beam-size')
@@ -22,6 +25,7 @@ def plot_all(bunch_count):
     plot_beam_size(axes, xdata, experimental_results, combined_xdata)
     figure.savefig('beam-size-vs-experiment')
     # Emittance
+    print('Plotting emittance...')
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
     plot_emittance(axes, xdata, ydata, combined_xdata, combined_ydata)
     figure.savefig('emittance')
@@ -29,13 +33,17 @@ def plot_all(bunch_count):
     plot_emittance_growth(axes, xdata, ydata, combined_xdata, combined_ydata)
     figure.savefig('emittance-growth')
     # Particle plots: initial
+    print('Loading initial phase space data...')
     phase_space_data = load_phase_space_data(40, bunch_count)
+    print('Plotting initial phase space data...')
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
     plot_phase_spaces(axes, phase_space_data, title='Initial phase space', 
                       nx=100, ny=100)
     figure.savefig('phase-space-initial')
     # Particle plots: final
+    print('Loading final phase space data...')
     phase_space_data = load_phase_space_data(50, bunch_count)
+    print('Plotting final phase space data...')
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
     plot_phase_spaces(axes, phase_space_data, title='Final phase space',
                       nx=100, ny=100)
@@ -44,7 +52,9 @@ def plot_all(bunch_count):
     lattice = get_lattice()
     bpm_list = get_bpms(lattice)
     for location, filenumber in bpm_list:
+        print('Loading BPM phase space data...')
         phase_space_data = load_phase_space_data(filenumber, bunch_count)
+        print('Plotting BPM phase space data...')
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
         plot_phase_spaces(axes, phase_space_data,
                           title=f'Phase space at z = {location}',
