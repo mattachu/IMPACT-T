@@ -31,12 +31,14 @@ def plot_all(bunch_count):
     # Particle plots: initial
     phase_space_data = load_phase_space_data(40, bunch_count)
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-    plot_phase_spaces(axes, phase_space_data, nx=100, ny=100)
+    plot_phase_spaces(axes, phase_space_data, title='Initial phase space', 
+                      nx=100, ny=100)
     figure.savefig('phase-space-initial')
     # Particle plots: final
     phase_space_data = load_phase_space_data(50, bunch_count)
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-    plot_phase_spaces(axes, phase_space_data, nx=100, ny=100)
+    plot_phase_spaces(axes, phase_space_data, title='Final phase space',
+                      nx=100, ny=100)
     figure.savefig('phase-space-final')
     # Particle plots: BPMs
     lattice = get_lattice()
@@ -44,7 +46,9 @@ def plot_all(bunch_count):
     for location, filenumber in bpm_list:
         phase_space_data = load_phase_space_data(filenumber, bunch_count)
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-        plot_phase_spaces(axes, phase_space_data, nx=100, ny=100)
+        plot_phase_spaces(axes, phase_space_data,
+                          title=f'Phase space at z = {location}',
+                          nx=100, ny=100)
         figure.savefig('phase-space-' + location)
 
 def get_input_filename(bunch):
@@ -256,7 +260,9 @@ def plot_phase_space(axes, xdata, ydata, xlabel, ylabel, nx=100, ny=100):
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
 
-def plot_phase_spaces(axes, data, nx=100, ny=100):
+def plot_phase_spaces(axes, data, title='Phase space', nx=100, ny=100):
+    figure = axes[0,0].figure
+    figure.suptitle(title)
     plot_phase_space(axes[0,0], data.T[0]*1000, data.T[1],
                      'x (mm)', 'px (dimensionless βγ)', nx, ny)
     plot_phase_space(axes[0,1], data.T[2]*1000, data.T[3],

@@ -1011,16 +1011,28 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame,
     def get_filenumber(self):
         """Get the file number of the selected slice for plotting."""
         return self.slice_list[self.slice_select.get()]
+    def get_title(self, filenumber):
+        """Generate the plot title for a particular file number."""
+        if filenumber == IMPACT_T_initial_slice:
+            return 'Initial phase space'
+        elif filenumber == IMPACT_T_final_slice:
+            return 'Final phase space'
+        else:
+            matches = [bpm for bpm in self.slice_list
+                       if self.slice_list[bpm] == filenumber]
+            return 'Phase space at z = ' + str(matches[0])
     def get_grid_size(self):
         """Get the selected grid size for plot sampling."""
         return int(self.grid_size.get())
     def plot(self):
         """Load and plot phase space data for selected bunches."""
-        phase_space_data = MultiBunchPlot.load_phase_space_data(
-            self.get_filenumber(), self.get_max_bunch())
-        nx = self.get_grid_size()
-        ny = nx
+        filenumber = self.get_filenumber()
+        grid_size = self.get_grid_size()
         for subfig in self.subfig:
             subfig.cla()
-        MultiBunchPlot.plot_phase_spaces(self.axes, phase_space_data, nx, ny)
+        phase_space_data = MultiBunchPlot.load_phase_space_data(
+            filenumber, self.get_max_bunch())
+        MultiBunchPlot.plot_phase_spaces(self.axes, phase_space_data,
+                                         title=self.get_title(filenumber),
+                                         nx=grid_size, ny=grid_size)
         self.canvas.draw()
