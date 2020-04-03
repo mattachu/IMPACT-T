@@ -14,12 +14,14 @@ def plot_all(bunch_count):
     xdata, ydata = load_statistics_data(bunch_count)
     combined_xdata = combine_bunch_values(xdata)
     combined_ydata = combine_bunch_values(ydata)
+    # Beam size
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
     plot_beam_size(axes, xdata, [], combined_xdata)
     figure.savefig('beam-size')
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
     plot_beam_size(axes, xdata, experimental_results, combined_xdata)
     figure.savefig('beam-size-vs-experiment')
+    # Emittance
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
     plot_emittance(axes, xdata, ydata, combined_xdata, combined_ydata)
     figure.savefig('emittance')
@@ -28,7 +30,7 @@ def plot_all(bunch_count):
     figure.savefig('emittance-growth')
 
 def get_input_filename(bunch):
-    """Return the filename of the input file for a particular bunch"""
+    """Return the filename of the input file for a particular bunch."""
     if bunch == 1:
         filename = 'ImpactT.in'
     else:
@@ -38,7 +40,7 @@ def get_input_filename(bunch):
     return filename
 
 def get_bunch_count():
-    """Get the number of bunches from the first input file"""
+    """Get the number of bunches from the first input file."""
     input = read_input_file(get_input_filename(1))
     return int(input[1].split()[2])
 
