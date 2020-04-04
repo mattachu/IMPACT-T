@@ -59,7 +59,7 @@ def plot_all(bunch_count):
         plot_phase_spaces(axes, phase_space_data,
                           title=f'Phase space at z = {location}',
                           nx=100, ny=100)
-        figure.savefig('phase-space-' + location)
+        figure.savefig(f'phase-space-{filenumber}')
 
 def get_input_filename(bunch):
     """Return the filename of the input file for a particular bunch."""
