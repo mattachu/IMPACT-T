@@ -52,9 +52,9 @@ def plot_all(bunch_count):
     lattice = get_lattice()
     bpm_list = get_bpms(lattice)
     for location, filenumber in bpm_list:
-        print('Loading BPM phase space data...')
+        print(f'Loading BPM {filenumber} phase space data...')
         phase_space_data = load_phase_space_data(filenumber, bunch_count)
-        print('Plotting BPM phase space data...')
+        print(f'Plotting BPM {filenumber} phase space data...')
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
         plot_phase_spaces(axes, phase_space_data,
                           title=f'Phase space at z = {location}',
