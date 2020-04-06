@@ -1034,5 +1034,6 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame,
             filenumber, self.get_max_bunch())
         MultiBunchPlot.plot_phase_spaces(self.axes, phase_space_data,
                                          title=self.get_title(filenumber),
+                                         bunch_count=self.get_max_bunch(),
                                          nx=grid_size, ny=grid_size)
         self.canvas.draw()

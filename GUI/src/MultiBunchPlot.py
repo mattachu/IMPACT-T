@@ -37,8 +37,8 @@ def plot_all(bunch_count):
     phase_space_data = load_phase_space_data(40, bunch_count)
     print('Plotting initial phase space data...')
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-    plot_phase_spaces(axes, phase_space_data, title='Initial phase space', 
-                      nx=100, ny=100)
+    plot_phase_spaces(axes, phase_space_data, title='Initial phase space',
+                      bunch_count=bunch_count, nx=100, ny=100)
     figure.savefig('phase-space-initial')
     # Particle plots: final
     print('Loading final phase space data...')
@@ -46,7 +46,7 @@ def plot_all(bunch_count):
     print('Plotting final phase space data...')
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
     plot_phase_spaces(axes, phase_space_data, title='Final phase space',
-                      nx=100, ny=100)
+                      bunch_count=bunch_count, nx=100, ny=100)
     figure.savefig('phase-space-final')
     # Particle plots: BPMs
     lattice = get_lattice()
@@ -58,7 +58,7 @@ def plot_all(bunch_count):
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
         plot_phase_spaces(axes, phase_space_data,
                           title=f'Phase space at z = {location}',
-                          nx=100, ny=100)
+                          bunch_count=bunch_count, nx=100, ny=100)
         figure.savefig(f'phase-space-{filenumber}')
 
 def get_input_filename(bunch):
@@ -95,6 +95,16 @@ def get_particle_count(filename):
     """Get the macroparticle count from a given input file."""
     input = read_input_file(filename)
     return int(input[2].split()[1])
+
+def get_mass(filename):
+    """Get the particle mass from a given input file."""
+    input = read_input_file(filename)
+    return float(input[8].split()[2])
+
+def is_mass_matched(bunch_count):
+    """Check whether the particle mass values are the same for given bunches."""
+    mass = [get_mass(get_input_filename(i+1)) for i in range(bunch_count)]
+    return len(set(mass)) == 1
 
 def read_input_file(filename):
     """Read input file and return list of input lines."""
@@ -272,18 +282,37 @@ def plot_phase_space(axes, xdata, ydata, xlabel, ylabel, nx=100, ny=100):
     axes.set_ylabel(ylabel, fontsize='x-small')
     axes.tick_params(labelsize='xx-small')
 
-def plot_phase_spaces(axes, data, title='Phase space', nx=100, ny=100):
+def plot_phase_spaces(axes, data, title=None, bunch_count=None, nx=100, ny=100):
     """Plot four phase spaces onto the given array of axes."""
+    if not title:
+        title = 'Phase space'
     figure = axes[0,0].figure
     figure.suptitle(title)
-    plot_phase_space(axes[0,0], data.T[0]*1000, data.T[1],
-                     'x (mm)', 'px (dimensionless βγ)', nx, ny)
-    plot_phase_space(axes[0,1], data.T[2]*1000, data.T[3],
-                     'y (mm)', 'py (dimensionless βγ)', nx, ny)
-    plot_phase_space(axes[1,0], data.T[4]*1000, data.T[5],
-                     'z (mm)', 'pz (dimensionless βγ)', nx, ny)
-    plot_phase_space(axes[1,1], data.T[0]*1000, data.T[2]*1000,
-                     'x (mm)', 'y (mm)', nx, ny)
+    x = data.T[0]
+    px = data.T[1]
+    y = data.T[2]
+    py = data.T[3]
+    z = data.T[4]
+    pz = data.T[5]
+    xp = px/pz
+    yp = py/pz
+    plot_phase_space(axes[0,0], x*1e3, xp*1e3, 'x (mm)', 'x` (mrad)', nx, ny)
+    plot_phase_space(axes[0,1], y*1e3, yp*1e3, 'y (mm)', 'y` (mrad)', nx, ny)
+    plot_phase_space(axes[1,1], x*1e3, y*1e3, 'x (mm)', 'y (mm)', nx, ny)
+    if not bunch_count:
+        bunch_count = get_bunch_count()
+    if not is_mass_matched(bunch_count):
+        print(f'Masses for {bunch_count} bunches do not match, '
+              + 'so cannot plot combined energy distribution. '
+              + 'Falling back to dimensionless momentum plot.')
+        plot_phase_space(
+            axes[1,0], z*1e3, pz, 'z (mm)', 'pz (dimensionless βγ)', nx, ny)
+    else:
+        mass = get_mass(get_input_filename(1))
+        gamma = 1/numpy.sqrt(1 - numpy.square(pz))
+        W = (gamma - 1)*mass
+        plot_phase_space(
+            axes[1,0], z*1e3, W/1e6, 'z (mm)', 'Energy (MeV)', nx, ny)
 
 if __name__ == '__main__':
     matplotlib.use('agg') # Use the AGG renderer to produce PNG output
