@@ -238,6 +238,7 @@ def plot_emittance_growth_single(axes, xdata, ydata, fmt, label):
     axes.plot(t, growth, fmt, linewidth=1, label=label)
 
 def plot_phase_space(axes, xdata, ydata, xlabel, ylabel, nx=100, ny=100):
+    """Plot a single phase space onto the given axes."""
     if nx < 10:
         nx = 10
     if ny < 10:
@@ -272,6 +273,7 @@ def plot_phase_space(axes, xdata, ydata, xlabel, ylabel, nx=100, ny=100):
     axes.tick_params(labelsize='xx-small')
 
 def plot_phase_spaces(axes, data, title='Phase space', nx=100, ny=100):
+    """Plot four phase spaces onto the given array of axes."""
     figure = axes[0,0].figure
     figure.suptitle(title)
     plot_phase_space(axes[0,0], data.T[0]*1000, data.T[1],
