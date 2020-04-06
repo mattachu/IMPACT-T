@@ -267,8 +267,9 @@ def plot_phase_space(axes, xdata, ydata, xlabel, ylabel, nx=100, ny=100):
     tmap.set_under('white',0.)
     axes.imshow(count, cmap=tmap, origin='lower', interpolation='bilinear',
                 vmin=0.0000001, extent=(xmin,xmax,ymin,ymax), aspect="auto")
-    axes.set_xlabel(xlabel)
-    axes.set_ylabel(ylabel)
+    axes.set_xlabel(xlabel, fontsize='x-small')
+    axes.set_ylabel(ylabel, fontsize='x-small')
+    axes.tick_params(labelsize='xx-small')
 
 def plot_phase_spaces(axes, data, title='Phase space', nx=100, ny=100):
     figure = axes[0,0].figure
