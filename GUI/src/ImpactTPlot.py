@@ -960,6 +960,8 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame,
     """Frame to plot phase spaces for selected bunches together."""
     def __init__(self, parent, filenumber=50):
         PlotBaseFrame.__init__(self, parent, per_bunch=True)
+        self.last_filenumber = 0
+        self.last_bunch_count = 0
         self.plot()
     def create_figure(self):
         """Create four subplots (override base class)."""
@@ -1027,12 +1029,17 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame,
     def plot(self):
         """Load and plot phase space data for selected bunches."""
         filenumber = self.get_filenumber()
-        grid_size = self.get_grid_size()
+        bunch_count = self.get_max_bunch()
+        if (filenumber != self.last_filenumber
+            or bunch_count != self.last_bunch_count):
+            self.data = MultiBunchPlot.load_phase_space_data(
+                filenumber, bunch_count)
+            self.last_filenumber = filenumber
+            self.last_bunch_count = bunch_count
         for subfig in self.subfig:
             subfig.cla()
-        phase_space_data = MultiBunchPlot.load_phase_space_data(
-            filenumber, self.get_max_bunch())
-        MultiBunchPlot.plot_phase_spaces(self.axes, phase_space_data,
+        MultiBunchPlot.plot_phase_spaces(self.axes, self.data,
                                          title=self.get_title(filenumber),
-                                         nx=grid_size, ny=grid_size)
+                                         bunch_count=bunch_count,
+                                         grid_size=self.get_grid_size())
         self.canvas.draw()
