@@ -19,6 +19,7 @@ def get_parameters():
     return parameters
 
 def get_file_lists(parameters):
+    """Ask the user for lists of input and output files, and how to merge them"""
     input_files = get_list('Enter filename(s) to load: ')
     if input('Do you want to merge with other input file(s)? [y/n]') == 'y':
         parameters['infiles'] = []
@@ -63,6 +64,7 @@ def get_list(prompt):
             return input_list
 
 def get_merge_list(file_lists):
+    """Get list of which files to take values for which dimensions"""
     for idx, file_list in enumerate(file_lists):
         print(f'List {idx + 1}: {file_list}')
     merge_list = {}
@@ -81,6 +83,7 @@ def get_merge_list(file_lists):
     return merge_list
 
 def get_merge_value(dim, max):
+    """Select a file list to take values for the given dimension"""
     while True:
         value = int(input(f'Which list should the {dim} values come from? '))
         if value > 0 and value <= max:
@@ -89,6 +92,7 @@ def get_merge_value(dim, max):
             print(f'Please enter an integer value from 1 to {max}')
 
 def get_beam_parameters(parameters):
+    """Get the beam parameters from a text file or by user input"""
     if contains_text_file(parameters['infiles']):
         if input('Use beam parameters from the text file? [y/n]') == 'y':
             return parameters
@@ -154,7 +158,7 @@ def load_impact_t_data(infile):
     return processed_data
 
 def load_tracewin_text_data(infile):
-    """Load data from an Impact-T output file such as `fort.40`"""
+    """Load data from an TraceWin export file such as `part.txt`"""
     columns = ['x', 'x`', 'y', 'y`', 'z', 'z`', 'phi', 't', 'W', 'loss']
     print(f'Loading data from {infile}')
     with open(infile) as f:
