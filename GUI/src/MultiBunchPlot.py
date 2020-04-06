@@ -38,7 +38,7 @@ def plot_all(bunch_count):
     print('Plotting initial phase space data...')
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
     plot_phase_spaces(axes, phase_space_data, title='Initial phase space',
-                      bunch_count=bunch_count, nx=100, ny=100)
+                      bunch_count=bunch_count, grid_size=300)
     figure.savefig('phase-space-initial')
     # Particle plots: final
     print('Loading final phase space data...')
@@ -46,7 +46,7 @@ def plot_all(bunch_count):
     print('Plotting final phase space data...')
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
     plot_phase_spaces(axes, phase_space_data, title='Final phase space',
-                      bunch_count=bunch_count, nx=100, ny=100)
+                      bunch_count=bunch_count, grid_size=300)
     figure.savefig('phase-space-final')
     # Particle plots: BPMs
     lattice = get_lattice()
@@ -58,7 +58,7 @@ def plot_all(bunch_count):
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
         plot_phase_spaces(axes, phase_space_data,
                           title=f'Phase space at z = {location}',
-                          bunch_count=bunch_count, nx=100, ny=100)
+                          bunch_count=bunch_count, grid_size=300)
         figure.savefig(f'phase-space-{filenumber}')
 
 def get_input_filename(bunch):
@@ -247,42 +247,31 @@ def plot_emittance_growth_single(axes, xdata, ydata, fmt, label):
     growth = [emittance/initial_emittance - 1 for emittance in e]
     axes.plot(t, growth, fmt, linewidth=1, label=label)
 
-def plot_phase_space(axes, xdata, ydata, xlabel, ylabel, nx=100, ny=100):
+def plot_phase_space(axes, x, y, xlabel, ylabel, grid_size=100):
     """Plot a single phase space onto the given axes."""
-    if nx < 10:
-        nx = 10
-    if ny < 10:
-        ny = 10
-    xmax = numpy.max(xdata)
-    ymax = numpy.max(ydata)
-    xmin = numpy.min(xdata)
-    ymin = numpy.min(ydata)
-    hx = (xmax - xmin)/(nx - 1)
-    hy = (ymax - ymin)/(ny - 1)
-    count = numpy.zeros([ny, nx])
-    for i in range(len(xdata)):
-        ix = int((xdata[i] - xmin)/hx)
-        iy = int((ydata[i] - ymin)/hy)
-        if ix >= nx - 1:
-            ix = nx - 2
-        if iy >= ny - 1:
-            iy = ny - 2
-        ab = (xdata[i] - (xmin + ix * hx))/hx
-        cd = (ydata[i] - (ymin + iy * hy))/hy
-        count[iy  ,ix  ] += (1.0-ab) * (1.0-cd)
-        count[iy+1,ix  ] += (    ab) * (1.0-cd)
-        count[iy  ,ix+1] += (1.0-ab) * (    cd)
-        count[iy+1,ix+1] += (    ab) * (    cd)
-    count[count == 0.0] = -0.0000001
-    tmap = matplotlib.pyplot.cm.jet
-    tmap.set_under('white',0.)
-    axes.imshow(count, cmap=tmap, origin='lower', interpolation='bilinear',
-                vmin=0.0000001, extent=(xmin,xmax,ymin,ymax), aspect="auto")
+    if grid_size < 10:
+        grid_size = 10
+    colour_map = matplotlib.cm.get_cmap('jet')
+    colour_map.set_under('white', 0.)
+    # Plot 2D histogram
+    hist, *_ = axes.hist2d(x, y, bins=grid_size, cmap=colour_map, cmin=1)
     axes.set_xlabel(xlabel, fontsize='x-small')
     axes.set_ylabel(ylabel, fontsize='x-small')
     axes.tick_params(labelsize='xx-small')
+    # Project to 1D histograms
+    xmin, xmax = axes.get_xbound()
+    ymin, ymax = axes.get_ybound()
+    xscale = numpy.array(range(grid_size)) / grid_size * (xmax - xmin) + xmin
+    yscale = numpy.array(range(grid_size)) / grid_size * (ymax - ymin) + ymin
+    xhist = numpy.nansum(hist, 1)
+    yhist = numpy.nansum(hist, 0)
+    xhist_scaled = xhist / xhist.max() * (ymax - ymin) * 0.2 + ymin
+    yhist_scaled = yhist / yhist.max() * (xmax - xmin) * 0.2 + xmin
+    # Plot 1D histograms
+    axes.plot(xscale, xhist_scaled, color='green', linewidth=0.75)
+    axes.plot(yhist_scaled, yscale, color='green', linewidth=0.75)
 
-def plot_phase_spaces(axes, data, title=None, bunch_count=None, nx=100, ny=100):
+def plot_phase_spaces(axes, data, title=None, bunch_count=None, grid_size=100):
     """Plot four phase spaces onto the given array of axes."""
     if not title:
         title = 'Phase space'
@@ -296,9 +285,9 @@ def plot_phase_spaces(axes, data, title=None, bunch_count=None, nx=100, ny=100):
     pz = data.T[5]
     xp = px/pz
     yp = py/pz
-    plot_phase_space(axes[0,0], x*1e3, xp*1e3, 'x (mm)', 'x` (mrad)', nx, ny)
-    plot_phase_space(axes[0,1], y*1e3, yp*1e3, 'y (mm)', 'y` (mrad)', nx, ny)
-    plot_phase_space(axes[1,1], x*1e3, y*1e3, 'x (mm)', 'y (mm)', nx, ny)
+    plot_phase_space(axes[0,0], x*1e3, xp*1e3, 'x (mm)', 'x` (mrad)', grid_size)
+    plot_phase_space(axes[0,1], y*1e3, yp*1e3, 'y (mm)', 'y` (mrad)', grid_size)
+    plot_phase_space(axes[1,1], x*1e3, y*1e3, 'x (mm)', 'y (mm)', grid_size)
     if not bunch_count:
         bunch_count = get_bunch_count()
     if not is_mass_matched(bunch_count):
@@ -306,13 +295,13 @@ def plot_phase_spaces(axes, data, title=None, bunch_count=None, nx=100, ny=100):
               + 'so cannot plot combined energy distribution. '
               + 'Falling back to dimensionless momentum plot.')
         plot_phase_space(
-            axes[1,0], z*1e3, pz, 'z (mm)', 'pz (dimensionless βγ)', nx, ny)
+            axes[1,0], z*1e3, pz, 'z (mm)', 'pz (dimensionless βγ)', grid_size)
     else:
         mass = get_mass(get_input_filename(1))
         gamma = 1/numpy.sqrt(1 - numpy.square(pz))
         W = (gamma - 1)*mass
         plot_phase_space(
-            axes[1,0], z*1e3, W/1e6, 'z (mm)', 'Energy (MeV)', nx, ny)
+            axes[1,0], z*1e3, W/1e6, 'z (mm)', 'Energy (MeV)', grid_size)
 
 if __name__ == '__main__':
     matplotlib.use('agg') # Use the AGG renderer to produce PNG output
