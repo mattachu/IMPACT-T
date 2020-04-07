@@ -1025,21 +1025,26 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame):
     def get_grid_size(self):
         """Get the selected grid size for plot sampling."""
         return int(self.grid_size.get())
+    def refresh_data(self):
+        """Reload data (list of all bunch data) when filenumber is changed."""
+        filenumber = self.get_filenumber()
+        if filenumber != self.last_filenumber:
+            self.data = MultiBunchPlot.load_phase_space_data(filenumber,
+                                                             self.Nbunch)
+            self.last_filenumber = filenumber
+    def get_combined_data(self):
+        """Return a combined dataset for the selected number of bunches."""
+        self.refresh_data()
+        max_bunch = self.get_max_bunch()
+        return MultiBunchPlot.combine_phase_space_data(self.data[0:max_bunch])
     def plot(self):
         """Load and plot phase space data for selected bunches."""
-        filenumber = self.get_filenumber()
-        bunch_count = self.get_max_bunch()
-        if (filenumber != self.last_filenumber
-            or bunch_count != self.last_bunch_count):
-            data_in = MultiBunchPlot.load_phase_space_data(
-                filenumber, bunch_count)
-            self.data = MultiBunchPlot.combine_phase_space_data(data_in)
-            self.last_filenumber = filenumber
-            self.last_bunch_count = bunch_count
         for subfig in self.subfig:
             subfig.cla()
-        MultiBunchPlot.plot_phase_spaces(self.axes, self.data,
-                                         title=self.get_title(filenumber),
-                                         bunch_count=bunch_count,
-                                         grid_size=self.get_grid_size())
+        MultiBunchPlot.plot_phase_spaces(
+            self.axes,
+            self.get_combined_data(),
+            title=self.get_title(self.get_filenumber()),
+            bunch_count=self.get_max_bunch(),
+            grid_size=self.get_grid_size())
         self.canvas.draw()
