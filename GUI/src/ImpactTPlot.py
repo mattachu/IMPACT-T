@@ -987,7 +987,7 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame,
     def create_slice_selector(self):
         """Add selector for which slice or BPM output to plot."""
         self.slice_list = self.get_slice_list()
-        self.slice_default = tk.StringVar(self.option_frame, 'Final')
+        self.slice_default = tk.StringVar(self.option_frame, 'Initial')
         self.slice_label = tk.Label(self.option_frame,
                                     text='Select phase space position: ')
         self.slice_label.pack(fill='both', expand=1, side='left')
