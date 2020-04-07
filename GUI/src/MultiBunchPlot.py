@@ -357,7 +357,7 @@ def plot_phase_spaces(axes, data, title=None, bunch_count=None, grid_size=100):
             axes[1,0], z*1e3, pz, 'z (mm)', 'pz (dimensionless βγ)', grid_size)
     else:
         mass = get_mass(get_input_filename(1))
-        gamma = 1/numpy.sqrt(1 - numpy.square(pz))
+        gamma = numpy.sqrt(1 + numpy.square(pz))
         W = (gamma - 1)*mass
         plot_phase_space(
             axes[1,0], z*1e3, W/1e6, 'z (mm)', 'Energy (MeV)', grid_size)
@@ -367,7 +367,7 @@ def plot_bunch_energies(axes, data, title='Energy spectra', bins=300):
     figure = axes.figure
     figure.suptitle(title)
     bunch_count = len(data)
-    gamma = [1/numpy.sqrt(1 - numpy.square(bunch.T[5])) for bunch in data]
+    gamma = [numpy.sqrt(1 + numpy.square(bunch.T[5])) for bunch in data]
     mass = [get_mass(get_input_filename(i+1)) for i in range(bunch_count)]
     W = [(gamma[i] - 1)*mass[i]/1e6 for i in range(bunch_count)]
     axes.hist(numpy.concatenate(W), bins=bins, label='Total',
@@ -386,7 +386,7 @@ def plot_total_energy(axes, data, title='Total energy spectrum', bins=300):
     """Plot total energy spectrum histogram on log scale."""
     figure = axes.figure
     figure.suptitle(title)
-    gamma = 1/numpy.sqrt(1 - numpy.square(data.T[5]))
+    gamma = numpy.sqrt(1 + numpy.square(data.T[5]))
     mass = get_mass(get_input_filename(1))
     W = (gamma - 1)*mass/1e6
     axes.hist(W, bins=bins, histtype='stepfilled', linewidth=1.0,
