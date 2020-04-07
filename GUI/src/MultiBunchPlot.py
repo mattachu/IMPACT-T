@@ -138,6 +138,8 @@ def load_phase_space_data(filenumber, bunch_count):
 
 def combine_bunch_values(data_in):
     """Combine values of separate bunches into a single summary dataset."""
+    if len(data_in) == 1:
+        return data_in[0]
     data = numpy.array(data_in, dtype=float)
     npt = numpy.array(get_bunch_counts(len(data)))
     # Decompose data
