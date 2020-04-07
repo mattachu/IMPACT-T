@@ -190,8 +190,13 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         self.button_MBEnergyPlot = tk.Button(self.frame2,
                                              text='Energy',
                                              command=self.MBEnergyPlot)
-        self.button_MBEnergyPlot.grid(row=rowN, column=0, columnspan=2,
+        self.button_MBEnergyPlot.grid(row=rowN, column=0, columnspan=1,
                                       padx=5, pady=1, sticky="nswe")
+        self.button_MBTotalEnergyPlot = tk.Button(self.frame2,
+                                                  text='Total energy',
+                                                  command=self.MBTotalEnergyPlot)
+        self.button_MBTotalEnergyPlot.grid(row=rowN, column=1, columnspan=1,
+                                           padx=5, pady=1, sticky="nswe")
         rowN += 1
 
 
@@ -408,6 +413,13 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         plotWindow = tk.Toplevel(self)
         plotWindow.title('Multi-bunch energy spectra plot')
         l = PlotMBEnergyFrame(plotWindow)
+        l.pack()
+
+    def MBTotalEnergyPlot(self):
+        print('Multi-bunch total energy spectrum plot')
+        plotWindow = tk.Toplevel(self)
+        plotWindow.title('Multi-bunch total energy spectrum plot')
+        l = PlotMBTotalEnergyFrame(plotWindow)
         l.pack()
 
 class PlotBaseFrame(tk.Frame):
@@ -1074,19 +1086,36 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchParticleBaseFrame):
         self.canvas.draw()
 
 class PlotMBEnergyFrame(PlotMultiBunchParticleBaseFrame):
-    """Frame to plot phase spaces for selected bunches together."""
+    """Frame to plot energy spectra for selected bunches together."""
     def __init__(self, parent):
         PlotMultiBunchParticleBaseFrame.__init__(self, parent)
     def get_title(self, filenumber):
         """Generate the plot title for a particular file number."""
         return self.build_title('energy spectra', filenumber)
     def plot(self):
-        """Load and plot phase space data for selected bunches."""
+        """Plot energy spectra for selected bunches."""
         self.subfig.cla()
         self.refresh_data()
         MultiBunchPlot.plot_bunch_energies(
             self.subfig.axes,
             self.data[0:self.get_max_bunch()],
+            title=self.get_title(self.get_filenumber()),
+            bins=self.get_bins())
+        self.canvas.draw()
+
+class PlotMBTotalEnergyFrame(PlotMultiBunchParticleBaseFrame):
+    """Frame to plot total energy spectrum for selected bunches combined."""
+    def __init__(self, parent):
+        PlotMultiBunchParticleBaseFrame.__init__(self, parent)
+    def get_title(self, filenumber):
+        """Generate the plot title for a particular file number."""
+        return self.build_title('total energy spectra', filenumber)
+    def plot(self):
+        """Load and plot total energy spectrum for selected bunches."""
+        self.subfig.cla()
+        MultiBunchPlot.plot_total_energy(
+            self.subfig.axes,
+            self.get_combined_data(),
             title=self.get_title(self.get_filenumber()),
             bins=self.get_bins())
         self.canvas.draw()
