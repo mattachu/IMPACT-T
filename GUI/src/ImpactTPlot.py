@@ -955,33 +955,20 @@ class PlotMBEmittanceGrowthFrame(PlotMultiBunchBaseFrame):
                                              combined_xdata, combined_ydata)
         self.canvas.draw()
 
-class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame):
-    """Frame to plot phase spaces for selected bunches together."""
-    def __init__(self, parent, filenumber=50):
+class PlotMultiBunchParticleBaseFrame(PlotMultiBunchBaseFrame):
+    """Base class for multi-bunch plots based on particle output files."""
+    def __init__(self, parent):
         PlotBaseFrame.__init__(self, parent, per_bunch=True)
         self.last_filenumber = 0
         self.last_bunch_count = 0
         self.plot()
-    def create_figure(self):
-        """Create four subplots (override base class)."""
-        self.fig, self.axes = matplotlib.pyplot.subplots(nrows=2, ncols=2,
-                                                         figsize=(8,6))
-        self.subfig = []
-        self.subfig.append(self.axes[0,0])
-        self.subfig.append(self.axes[0,1])
-        self.subfig.append(self.axes[1,0])
-        self.subfig.append(self.axes[1,1])
-        for subfig in self.subfig:
-            box = subfig.get_position()
-            subfig.set_position([box.x0*1.1, box.y0*1.1,
-                                 box.width, box.height*0.88])
     def create_option_frame(self, Nbunch, per_bunch=True):
         """Add options (override base class)."""
         self.option_frame = tk.Frame(self)
         self.option_frame.pack()
         self.create_slice_selector()
         self.create_bunch_selector(Nbunch)
-        self.create_grid_size_box()
+        self.create_bins_box()
         self.create_plot_button()
     def create_slice_selector(self):
         """Add selector for which slice or BPM output to plot."""
@@ -995,13 +982,13 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame):
                                          width=6,
                                          values=list(self.slice_list))
         self.slice_select.pack(fill='both', expand=1, side='left')
-    def create_grid_size_box(self):
-        """Add text box to set grid size for plot sampling."""
-        self.grid_size_label = tk.Label(self.option_frame, text='Grid size: ')
-        self.grid_size_label.pack(fill='both', expand=1, side='left')
-        self.grid_size = tk.Entry(self.option_frame, width=5)
-        self.grid_size.insert(0, '100')
-        self.grid_size.pack(fill='both', expand=1, side='left')
+    def create_bins_box(self):
+        """Add text box to set number of bins for plot sampling."""
+        self.bins_label = tk.Label(self.option_frame, text='Bins: ')
+        self.bins_label.pack(fill='both', expand=1, side='left')
+        self.bins = tk.Entry(self.option_frame, width=5)
+        self.bins.insert(0, '100')
+        self.bins.pack(fill='both', expand=1, side='left')
     def get_slice_list(self):
         """Get list of available phase space slices, including BPMs."""
         slice_list = {'Initial': IMPACT_T_initial_slice}
@@ -1012,19 +999,22 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame):
     def get_filenumber(self):
         """Get the file number of the selected slice for plotting."""
         return self.slice_list[self.slice_select.get()]
+    def get_bins(self):
+        """Get the selected number of bins for plot sampling."""
+        return int(self.bins.get())
     def get_title(self, filenumber):
         """Generate the plot title for a particular file number."""
+        raise NotImplementedError()
+    def build_title(self, base_title, filenumber):
+        """Build the plot title from a base string and a file number."""
         if filenumber == IMPACT_T_initial_slice:
-            return 'Initial phase space'
+            return 'Initial ' + base_title
         elif filenumber == IMPACT_T_final_slice:
-            return 'Final phase space'
+            return 'Final ' + base_title
         else:
             matches = [bpm for bpm in self.slice_list
                        if self.slice_list[bpm] == filenumber]
-            return 'Phase space at z = ' + str(matches[0])
-    def get_grid_size(self):
-        """Get the selected grid size for plot sampling."""
-        return int(self.grid_size.get())
+            return base_title.capitalize() + ' at z = ' + str(matches[0])
     def refresh_data(self):
         """Reload data (list of all bunch data) when filenumber is changed."""
         filenumber = self.get_filenumber()
@@ -1037,6 +1027,27 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame):
         self.refresh_data()
         max_bunch = self.get_max_bunch()
         return MultiBunchPlot.combine_phase_space_data(self.data[0:max_bunch])
+
+class PlotMBPhaseSpaceFrame(PlotMultiBunchParticleBaseFrame):
+    """Frame to plot phase spaces for selected bunches together."""
+    def __init__(self, parent):
+        PlotMultiBunchParticleBaseFrame.__init__(self, parent)
+    def create_figure(self):
+        """Create four subplots (override base class)."""
+        self.fig, self.axes = matplotlib.pyplot.subplots(nrows=2, ncols=2,
+                                                         figsize=(8,6))
+        self.subfig = []
+        self.subfig.append(self.axes[0,0])
+        self.subfig.append(self.axes[0,1])
+        self.subfig.append(self.axes[1,0])
+        self.subfig.append(self.axes[1,1])
+        for subfig in self.subfig:
+            box = subfig.get_position()
+            subfig.set_position([box.x0*1.1, box.y0*1.1,
+                                 box.width, box.height*0.88])
+    def get_title(self, filenumber):
+        """Generate the plot title for a particular file number."""
+        return self.build_title('phase space', filenumber)
     def plot(self):
         """Load and plot phase space data for selected bunches."""
         for subfig in self.subfig:
@@ -1046,5 +1057,5 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame):
             self.get_combined_data(),
             title=self.get_title(self.get_filenumber()),
             bunch_count=self.get_max_bunch(),
-            grid_size=self.get_grid_size())
+            grid_size=self.get_bins())
         self.canvas.draw()
