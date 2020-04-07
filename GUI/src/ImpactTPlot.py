@@ -172,7 +172,7 @@ class AdvancedPlotControlFrame(tk.Toplevel):
                                         padx=5, pady=1, sticky="nswe")
         self.button_MBPhaseSpacePlot = tk.Button(self.frame2,
                                                  text='Phase space',
-                                                 command=self.MPPhaseSpacePlot)
+                                                 command=self.MBPhaseSpacePlot)
         self.button_MBPhaseSpacePlot.grid(row=rowN, column=1, columnspan=1,
                                           padx=5, pady=1, sticky="nswe")
         rowN += 1
@@ -390,7 +390,7 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         l = PlotMBEmittanceGrowthFrame(plotWindow)
         l.pack()
 
-    def MPPhaseSpacePlot(self):
+    def MBPhaseSpacePlot(self):
         print('Multi-bunch phase space plot')
         plotWindow = tk.Toplevel(self)
         plotWindow.title('Multi-bunch phase space plot')
