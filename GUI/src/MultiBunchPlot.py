@@ -262,14 +262,21 @@ def plot_phase_space(axes, x, y, xlabel, ylabel, grid_size=100):
     """Plot a single phase space onto the given axes."""
     if grid_size < 10:
         grid_size = 10
-    colour_map = matplotlib.cm.get_cmap('jet')
-    colour_map.set_under('white', 0.)
-    # Plot 2D histogram
-    hist, *_ = axes.hist2d(x, y, bins=grid_size, cmap=colour_map, cmin=1)
     axes.set_xlabel(xlabel, fontsize='x-small')
     axes.set_ylabel(ylabel, fontsize='x-small')
     axes.tick_params(labelsize='xx-small')
-    # Project to 1D histograms
+    hist = plot_phase_space_hist2d(axes, x, y, grid_size)
+    plot_phase_space_hist1d(axes, hist, grid_size)
+
+def plot_phase_space_hist2d(axes, x, y, grid_size=100):
+    """Plot the 2d histogram part of the phase space plot."""
+    colour_map = matplotlib.cm.get_cmap('jet')
+    colour_map.set_under('white', 0.)
+    hist, *_ = axes.hist2d(x, y, bins=grid_size, cmap=colour_map, cmin=1)
+    return hist
+
+def plot_phase_space_hist1d(axes, hist, grid_size=100):
+    """Plot 1d histograms on the axes of the phase space plot."""
     xmin, xmax = axes.get_xbound()
     ymin, ymax = axes.get_ybound()
     xscale = numpy.array(range(grid_size)) / grid_size * (xmax - xmin) + xmin
@@ -278,7 +285,6 @@ def plot_phase_space(axes, x, y, xlabel, ylabel, grid_size=100):
     yhist = numpy.nansum(hist, 0)
     xhist_scaled = xhist / xhist.max() * (ymax - ymin) * 0.2 + ymin
     yhist_scaled = yhist / yhist.max() * (xmax - xmin) * 0.2 + xmin
-    # Plot 1D histograms
     axes.plot(xscale, xhist_scaled, color='green', linewidth=0.75)
     axes.plot(yhist_scaled, yscale, color='green', linewidth=0.75)
 
