@@ -265,26 +265,36 @@ def plot_phase_space(axes, x, y, xlabel, ylabel, grid_size=100):
     axes.set_xlabel(xlabel, fontsize='x-small')
     axes.set_ylabel(ylabel, fontsize='x-small')
     axes.tick_params(labelsize='xx-small')
-    hist = plot_phase_space_hist2d(axes, x, y, grid_size)
-    plot_phase_space_hist1d(axes, hist, grid_size)
+    hist2d = plot_phase_space_hist2d(axes, x, y, grid_size)
+    add_plot_margins(axes, 0.1)
+    plot_phase_space_hist1d(axes, hist2d, grid_size)
+
+def add_plot_margins(axes, margin):
+    """Adjust the axis limits to include a margin around the data."""
+    xmin, xmax = axes.get_xlim()
+    ymin, ymax = axes.get_ylim()
+    xmargin = margin*(xmax - xmin)
+    ymargin = margin*(ymax - ymin)
+    axes.set_xlim(xmin - xmargin, xmax + xmargin)
+    axes.set_ylim(ymin - ymargin, ymax + ymargin)
 
 def plot_phase_space_hist2d(axes, x, y, grid_size=100):
     """Plot the 2d histogram part of the phase space plot."""
     colour_map = matplotlib.cm.get_cmap('jet')
     colour_map.set_under('white', 0.)
-    hist, *_ = axes.hist2d(x, y, bins=grid_size, cmap=colour_map, cmin=1)
-    return hist
+    return axes.hist2d(x, y, bins=grid_size, cmap=colour_map, cmin=1)
 
-def plot_phase_space_hist1d(axes, hist, grid_size=100):
+def plot_phase_space_hist1d(axes, hist2d, grid_size=100):
     """Plot 1d histograms on the axes of the phase space plot."""
-    xmin, xmax = axes.get_xbound()
-    ymin, ymax = axes.get_ybound()
+    hist, xedges, yedges, img = hist2d
+    xmin, xmax, ymin, ymax = xedges[0], xedges[-1], yedges[0], yedges[-1]
+    x0, x1, y0, y1 = axes.axis()
     xscale = numpy.array(range(grid_size)) / grid_size * (xmax - xmin) + xmin
     yscale = numpy.array(range(grid_size)) / grid_size * (ymax - ymin) + ymin
     xhist = numpy.nansum(hist, 1)
     yhist = numpy.nansum(hist, 0)
-    xhist_scaled = xhist / xhist.max() * (ymax - ymin) * 0.2 + ymin
-    yhist_scaled = yhist / yhist.max() * (xmax - xmin) * 0.2 + xmin
+    xhist_scaled = xhist / xhist.max() * (y1 - y0) * 0.2 + y0
+    yhist_scaled = yhist / yhist.max() * (x1 - x0) * 0.2 + x0
     axes.plot(xscale, xhist_scaled, color='green', linewidth=0.75)
     axes.plot(yhist_scaled, yscale, color='green', linewidth=0.75)
 
