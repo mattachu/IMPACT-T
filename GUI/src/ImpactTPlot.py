@@ -187,6 +187,12 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         self.button_MBEmitGrowthPlot.grid(row=rowN, column=1, columnspan=1,
                                           padx=5, pady=1, sticky="nswe")
         rowN += 1
+        self.button_MBEnergyPlot = tk.Button(self.frame2,
+                                             text='Energy',
+                                             command=self.MBEnergyPlot)
+        self.button_MBEnergyPlot.grid(row=rowN, column=0, columnspan=2,
+                                      padx=5, pady=1, sticky="nswe")
+        rowN += 1
 
 
     def overallPlot(self):
@@ -395,6 +401,13 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         plotWindow = tk.Toplevel(self)
         plotWindow.title('Multi-bunch phase space plot')
         l = PlotMBPhaseSpaceFrame(plotWindow)
+        l.pack()
+
+    def MBEnergyPlot(self):
+        print('Multi-bunch energy spectra plot')
+        plotWindow = tk.Toplevel(self)
+        plotWindow.title('Multi-bunch energy spectra plot')
+        l = PlotMBEnergyFrame(plotWindow)
         l.pack()
 
 class PlotBaseFrame(tk.Frame):
@@ -1058,4 +1071,22 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchParticleBaseFrame):
             title=self.get_title(self.get_filenumber()),
             bunch_count=self.get_max_bunch(),
             grid_size=self.get_bins())
+        self.canvas.draw()
+
+class PlotMBEnergyFrame(PlotMultiBunchParticleBaseFrame):
+    """Frame to plot phase spaces for selected bunches together."""
+    def __init__(self, parent):
+        PlotMultiBunchParticleBaseFrame.__init__(self, parent)
+    def get_title(self, filenumber):
+        """Generate the plot title for a particular file number."""
+        return self.build_title('energy spectra', filenumber)
+    def plot(self):
+        """Load and plot phase space data for selected bunches."""
+        self.subfig.cla()
+        self.refresh_data()
+        MultiBunchPlot.plot_bunch_energies(
+            self.subfig.axes,
+            self.data[0:self.get_max_bunch()],
+            title=self.get_title(self.get_filenumber()),
+            bins=self.get_bins())
         self.canvas.draw()
