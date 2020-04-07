@@ -43,6 +43,14 @@ def plot_all(bunch_count):
     plot_phase_spaces(axes, combined_data, title='Initial phase space',
                       bunch_count=bunch_count, grid_size=300)
     figure.savefig('phase-space-initial')
+    print('Plotting initial energy spectra...')
+    figure, axes = matplotlib.pyplot.subplots(dpi=300)
+    plot_bunch_energies(axes, data, title='Initial energy spectra', bins=300)
+    figure.savefig('energies-initial')
+    figure, axes = matplotlib.pyplot.subplots(dpi=300)
+    plot_total_energy(
+        axes, combined_data, title='Initial total energy spectrum', bins=300)
+    figure.savefig('energy-initial')
     # Particle plots: final
     print('Loading final phase space data...')
     data = load_phase_space_data(50, bunch_count)
@@ -52,6 +60,14 @@ def plot_all(bunch_count):
     plot_phase_spaces(axes, combined_data, title='Final phase space',
                       bunch_count=bunch_count, grid_size=300)
     figure.savefig('phase-space-final')
+    print('Plotting final energy spectra...')
+    figure, axes = matplotlib.pyplot.subplots(dpi=300)
+    plot_bunch_energies(axes, data, title='Final energy spectra', bins=300)
+    figure.savefig('energies-final')
+    figure, axes = matplotlib.pyplot.subplots(dpi=300)
+    plot_total_energy(
+        axes, combined_data, title='Final total energy spectrum', bins=300)
+    figure.savefig('energy-final')
     # Particle plots: BPMs
     lattice = get_lattice()
     bpm_list = get_bpms(lattice)
@@ -65,6 +81,16 @@ def plot_all(bunch_count):
                           title=f'Phase space at z = {location}',
                           bunch_count=bunch_count, grid_size=300)
         figure.savefig(f'phase-space-{filenumber}')
+        print(f'Plotting BPM {filenumber} energy spectra...')
+        figure, axes = matplotlib.pyplot.subplots(dpi=300)
+        plot_bunch_energies(
+            axes, data, title=f'BPM {filenumber} energy spectra', bins=300)
+        figure.savefig(f'energies-{filenumber}')
+        figure, axes = matplotlib.pyplot.subplots(dpi=300)
+        plot_total_energy(
+            axes, combined_data,
+            title=f'BPM {filenumber} total energy spectrum', bins=300)
+        figure.savefig(f'energy-{filenumber}')
 
 def get_input_filename(bunch):
     """Return the filename of the input file for a particular bunch."""
@@ -335,6 +361,39 @@ def plot_phase_spaces(axes, data, title=None, bunch_count=None, grid_size=100):
         W = (gamma - 1)*mass
         plot_phase_space(
             axes[1,0], z*1e3, W/1e6, 'z (mm)', 'Energy (MeV)', grid_size)
+
+def plot_bunch_energies(axes, data, title='Energy spectra', bins=300):
+    """Plot per-bunch energy spectra histograms."""
+    figure = axes.figure
+    figure.suptitle(title)
+    bunch_count = len(data)
+    gamma = [1/numpy.sqrt(1 - numpy.square(bunch.T[5])) for bunch in data]
+    mass = [get_mass(get_input_filename(i+1)) for i in range(bunch_count)]
+    W = [(gamma[i] - 1)*mass[i]/1e6 for i in range(bunch_count)]
+    axes.hist(numpy.concatenate(W), bins=bins, label='Total',
+              histtype='stepfilled', linewidth=1.0,
+              color='red', facecolor=(1,0,0,0.1), edgecolor=(1,0,0,1.0))
+    axes.hist(W, bins=bins, histtype='stepfilled', alpha=0.5,
+              label=[f'Bunch {i+1}' for i in range(bunch_count)])
+    axes.set_xlabel('Energy (MeV)')
+    axes.set_ylabel('Number of macroparticles')
+    handles, labels = axes.get_legend_handles_labels()
+    handles.reverse()
+    labels.reverse()
+    axes.legend(handles, labels)
+
+def plot_total_energy(axes, data, title='Total energy spectrum', bins=300):
+    """Plot total energy spectrum histogram on log scale."""
+    figure = axes.figure
+    figure.suptitle(title)
+    gamma = 1/numpy.sqrt(1 - numpy.square(data.T[5]))
+    mass = get_mass(get_input_filename(1))
+    W = (gamma - 1)*mass/1e6
+    axes.hist(W, bins=bins, histtype='stepfilled', linewidth=1.0,
+              color='red', facecolor=(1,0,0,0.1), edgecolor=(1,0,0,1.0))
+    axes.set_xlabel('Energy (MeV)')
+    axes.set_ylabel('Number of macroparticles')
+    axes.set_yscale('log')
 
 if __name__ == '__main__':
     matplotlib.use('agg') # Use the AGG renderer to produce PNG output
