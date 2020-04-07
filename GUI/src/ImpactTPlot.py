@@ -1032,8 +1032,9 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame,
         bunch_count = self.get_max_bunch()
         if (filenumber != self.last_filenumber
             or bunch_count != self.last_bunch_count):
-            self.data = MultiBunchPlot.load_phase_space_data(
+            data_in = MultiBunchPlot.load_phase_space_data(
                 filenumber, bunch_count)
+            self.data = MultiBunchPlot.combine_phase_space_data(data_in)
             self.last_filenumber = filenumber
             self.last_bunch_count = bunch_count
         for subfig in self.subfig:

@@ -36,18 +36,20 @@ def plot_all(bunch_count):
     figure.savefig('emittance-growth')
     # Particle plots: initial
     print('Loading initial phase space data...')
-    phase_space_data = load_phase_space_data(40, bunch_count)
+    data = load_phase_space_data(40, bunch_count)
+    combined_data = combine_phase_space_data(data)
     print('Plotting initial phase space data...')
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-    plot_phase_spaces(axes, phase_space_data, title='Initial phase space',
+    plot_phase_spaces(axes, combined_data, title='Initial phase space',
                       bunch_count=bunch_count, grid_size=300)
     figure.savefig('phase-space-initial')
     # Particle plots: final
     print('Loading final phase space data...')
-    phase_space_data = load_phase_space_data(50, bunch_count)
+    data = load_phase_space_data(50, bunch_count)
+    combined_data = combine_phase_space_data(data)
     print('Plotting final phase space data...')
     figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-    plot_phase_spaces(axes, phase_space_data, title='Final phase space',
+    plot_phase_spaces(axes, combined_data, title='Final phase space',
                       bunch_count=bunch_count, grid_size=300)
     figure.savefig('phase-space-final')
     # Particle plots: BPMs
@@ -55,10 +57,11 @@ def plot_all(bunch_count):
     bpm_list = get_bpms(lattice)
     for location, filenumber in bpm_list:
         print(f'Loading BPM {filenumber} phase space data...')
-        phase_space_data = load_phase_space_data(filenumber, bunch_count)
+        data = load_phase_space_data(filenumber, bunch_count)
+        combined_data = combine_phase_space_data(data)
         print(f'Plotting BPM {filenumber} phase space data...')
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-        plot_phase_spaces(axes, phase_space_data,
+        plot_phase_spaces(axes, combined_data,
                           title=f'Phase space at z = {location}',
                           bunch_count=bunch_count, grid_size=300)
         figure.savefig(f'phase-space-{filenumber}')
@@ -131,11 +134,10 @@ def load_statistics_data(bunch_count):
     return xdata, ydata
 
 def load_phase_space_data(filenumber, bunch_count):
-    """Load phase space data per bunch and combine into single numpy array."""
-    data = load_phase_space_data_single(f'fort.{filenumber}')
-    for i in range(1, bunch_count):
-        data = numpy.concatenate(
-            (data, load_phase_space_data_single(f'fort.{filenumber+i}')))
+    """Load phase space data per bunch as a list of datasets."""
+    data = []
+    for i in range(bunch_count):
+        data.append(load_phase_space_data_single(f'fort.{filenumber+i}'))
     return data
 
 def load_phase_space_data_single(filename):
@@ -179,6 +181,10 @@ def combine_bunch_values(data_in):
     epx = numpy.sqrt(xrms*xrms * pxrms*pxrms - xpx*xpx)
     # Return combined data as a standard list
     return numpy.array([t, z0, x0, xrms, px0, pxrms, -xpx, epx]).T.tolist()
+
+def combine_phase_space_data(data_in):
+    """Combine per-bunch phase space data into single numpy array."""
+    return numpy.concatenate(data_in)
 
 def plot_beam_size(axes, data, experiment_data=[], combined_data=[]):
     """Create a plot of beam size per bunch."""
