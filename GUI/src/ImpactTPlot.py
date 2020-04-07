@@ -955,8 +955,7 @@ class PlotMBEmittanceGrowthFrame(PlotMultiBunchBaseFrame):
                                              combined_xdata, combined_ydata)
         self.canvas.draw()
 
-class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame,
-                            ParticlePlot.ParticleDensityFrame_weight2D):
+class PlotMBPhaseSpaceFrame(PlotMultiBunchBaseFrame):
     """Frame to plot phase spaces for selected bunches together."""
     def __init__(self, parent, filenumber=50):
         PlotBaseFrame.__init__(self, parent, per_bunch=True)
