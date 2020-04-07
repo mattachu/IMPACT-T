@@ -11,7 +11,7 @@ def plot_all(bunch_count):
     except FileNotFoundError:
         print('File not found: experimental_data.txt. '
               'Continuing without experimental data.')
-        experimental_results = []
+        experimental_results = None
     print('Loading statistical data...')
     xdata, ydata = load_statistics_data(bunch_count)
     combined_xdata = combine_bunch_values(xdata)
@@ -21,9 +21,10 @@ def plot_all(bunch_count):
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
     plot_beam_size(axes, xdata, [], combined_xdata)
     figure.savefig('beam-size')
-    figure, axes = matplotlib.pyplot.subplots(dpi=300)
-    plot_beam_size(axes, xdata, experimental_results, combined_xdata)
-    figure.savefig('beam-size-vs-experiment')
+    if experimental_results:
+        figure, axes = matplotlib.pyplot.subplots(dpi=300)
+        plot_beam_size(axes, xdata, experimental_results, combined_xdata)
+        figure.savefig('beam-size-vs-experiment')
     # Emittance
     print('Plotting emittance...')
     figure, axes = matplotlib.pyplot.subplots(dpi=300)
