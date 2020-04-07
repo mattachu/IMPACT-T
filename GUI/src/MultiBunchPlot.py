@@ -131,11 +131,18 @@ def load_statistics_data(bunch_count):
     return xdata, ydata
 
 def load_phase_space_data(filenumber, bunch_count):
-    """Load phase space data per bunch from particle output files."""
-    data = numpy.array(numpy.loadtxt(f'fort.{filenumber}'))
+    """Load phase space data per bunch and combine into single numpy array."""
+    data = load_phase_space_data_single(f'fort.{filenumber}')
     for i in range(1, bunch_count):
-        data = numpy.concatenate((data, numpy.loadtxt(f'fort.{filenumber+i}')))
+        data = numpy.concatenate(
+            (data, load_phase_space_data_single(f'fort.{filenumber+i}')))
     return data
+
+def load_phase_space_data_single(filename):
+    """Load phase space data for a single bunch as a numpy array."""
+    with open(filename, 'r') as f:
+        return numpy.array([[float(item) for item in line.split()]
+                            for line in f.readlines()])
 
 def combine_bunch_values(data_in):
     """Combine values of separate bunches into a single summary dataset."""
