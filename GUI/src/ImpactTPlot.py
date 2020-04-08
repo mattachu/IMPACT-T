@@ -934,10 +934,9 @@ class PlotMBBeamSizeFrame(PlotMultiBunchBaseFrame):
         experimental_results = MultiBunchPlot.load_experimental_results(
             'experimental_data.txt')
         xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
-        combined_xdata = MultiBunchPlot.combine_bunch_values(xdata)
         self.subfig.cla()
         MultiBunchPlot.plot_beam_size(self.subfig.axes, xdata,
-                                      experimental_results, combined_xdata)
+                                      experiment_data=experimental_results)
         self.canvas.draw()
 
 class PlotMBEmittanceFrame(PlotMultiBunchBaseFrame):
@@ -953,11 +952,8 @@ class PlotMBEmittanceFrame(PlotMultiBunchBaseFrame):
     def plot(self):
         """Plot average of x and y emittance for selected bunches."""
         xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
-        combined_xdata = MultiBunchPlot.combine_bunch_values(xdata)
-        combined_ydata = MultiBunchPlot.combine_bunch_values(ydata)
         self.subfig.cla()
-        MultiBunchPlot.plot_emittance(self.subfig.axes, xdata, ydata,
-                                      combined_xdata, combined_ydata)
+        MultiBunchPlot.plot_emittance(self.subfig.axes, xdata, ydata)
         self.canvas.draw()
 
 class PlotMBEmittanceGrowthFrame(PlotMultiBunchBaseFrame):
@@ -973,11 +969,8 @@ class PlotMBEmittanceGrowthFrame(PlotMultiBunchBaseFrame):
     def plot(self):
         """Plot growth of average x and y emittance for selected bunches."""
         xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
-        combined_xdata = MultiBunchPlot.combine_bunch_values(xdata)
-        combined_ydata = MultiBunchPlot.combine_bunch_values(ydata)
         self.subfig.cla()
-        MultiBunchPlot.plot_emittance_growth(self.subfig.axes, xdata, ydata,
-                                             combined_xdata, combined_ydata)
+        MultiBunchPlot.plot_emittance_growth(self.subfig.axes, xdata, ydata)
         self.canvas.draw()
 
 class PlotMultiBunchParticleBaseFrame(PlotMultiBunchBaseFrame):
