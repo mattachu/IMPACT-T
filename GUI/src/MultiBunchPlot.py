@@ -131,17 +131,18 @@ def combine_phase_space_data(data_in):
     """Combine per-bunch phase space data into single numpy array."""
     return numpy.concatenate(data_in)
 
-def plot_beam_size(axes, data, experiment_data=[], combined_data=[]):
+def plot_beam_size(axes, data, title='Beam size',
+                   experiment_data=None, combined_data=None):
     """Create a plot of beam size per bunch."""
+    axes.figure.suptitle(title)
     axes.set_xlabel('z-location (mm)')
     axes.set_ylabel('Beam size (mm)')
-    axes.set_title('Beam size')
-    if len(experiment_data) > 0:
+    if not combined_data:
+        combined_data = combine_bunch_values(data)
+    if experiment_data:
         plot_beam_size_experimental(axes, experiment_data)
     for i in range(len(data)):
         plot_beam_size_single(axes, data[i], '--', label=f'Bunch {i+1} rms')
-    if len(combined_data) == 0:
-        combined_data = combine_bunch_values(data)
     plot_beam_size_single(axes, combined_data, 'r-', label=f'Combined rms')
     axes.legend(fontsize='x-small')
 
@@ -160,17 +161,18 @@ def plot_beam_size_single(axes, data, fmt, label):
     rms = [float(row[3])*1.0e3 for row in data]
     axes.plot(z, rms, fmt, linewidth=1, label=label)
 
-def plot_emittance(axes, xdata, ydata, combined_xdata=[], combined_ydata=[]):
+def plot_emittance(axes, xdata, ydata, title='Emittance',
+                   combined_xdata=None, combined_ydata=None):
     """Create a plot of average x and y emittance per bunch."""
+    axes.figure.suptitle(title)
     axes.set_xlabel('Time (ns)')
     axes.set_ylabel('Normalised rms emittance (π mm mrad)')
-    axes.set_title('Emittance')
     for i in range(len(xdata)):
         plot_emittance_single(axes, xdata[i], ydata[i],
                               '--', label=f'Bunch {i+1}')
-    if len(combined_xdata) == 0:
+    if not combined_xdata:
         combined_xdata = combine_bunch_values(xdata)
-    if len(combined_ydata) == 0:
+    if not combined_ydata:
         combined_ydata = combine_bunch_values(ydata)
     plot_emittance_single(axes, combined_xdata, combined_ydata,
                           'r-', label=f'Combined')
@@ -183,18 +185,18 @@ def plot_emittance_single(axes, xdata, ydata, fmt, label):
          for k in range(len(xdata))]
     axes.plot(t, e, fmt, linewidth=1, label=label)
 
-def plot_emittance_growth(axes, xdata, ydata,
-                          combined_xdata=[], combined_ydata=[]):
+def plot_emittance_growth(axes, xdata, ydata, title='Emittance growth',
+                          combined_xdata=None, combined_ydata=None):
     """Create a plot of average x and y emittance growth per bunch."""
+    axes.figure.suptitle(title)
     axes.set_xlabel('Time (ns)')
     axes.set_ylabel('Average emittance growth in x and y (relative)')
-    axes.set_title('Emittance growth')
     for i in range(len(xdata)):
         plot_emittance_growth_single(axes, xdata[i], ydata[i],
-                              '--', label=f'Bunch {i+1}')
-    if len(combined_xdata) == 0:
+                                     '--', label=f'Bunch {i+1}')
+    if not combined_xdata:
         combined_xdata = combine_bunch_values(xdata)
-    if len(combined_ydata) == 0:
+    if not combined_ydata:
         combined_ydata = combine_bunch_values(ydata)
     plot_emittance_growth_single(axes, combined_xdata, combined_ydata,
                                  'r-', label=f'Combined')
@@ -209,9 +211,9 @@ def plot_emittance_growth_single(axes, xdata, ydata, fmt, label):
     growth = [emittance/initial_emittance - 1 for emittance in e]
     axes.plot(t, growth, fmt, linewidth=1, label=label)
 
-def plot_bunch_count(axes, data, xaxis, max_bunch):
+def plot_bunch_count(axes, data, xaxis, title='Bunch counts', max_bunch=None):
     """Plot the number of particles per bunch against 't' or 'z'."""
-    axes.set_title('Bunch counts')
+    axes.figure.suptitle(title)
     if xaxis == 't':
         x = data.T[1]
         xlabel = 'Time (s)'
@@ -220,7 +222,10 @@ def plot_bunch_count(axes, data, xaxis, max_bunch):
         xlabel = 'z-location (mm)'
     else:
         raise ValueError('Incorrect xaxis specifier: ' + str(xaxis))
-    counts = data.T[4:4+max_bunch]
+    if max_bunch:
+        counts = data.T[4:4+max_bunch]
+    else:
+        counts = data.T[4:]
     labels = [f'Bunch {i+1}' for i in range(len(counts))]
     axes.stackplot(x, counts, labels=labels)
     axes.set_xlim(left=0.0)
@@ -259,12 +264,10 @@ def plot_phase_space_hist1d(axes, hist2d, grid_size=100):
     axes.plot(xscale, xhist_scaled, color='green', linewidth=0.75)
     axes.plot(yhist_scaled, yscale, color='green', linewidth=0.75)
 
-def plot_phase_spaces(axes, data, title=None, bunch_count=None, grid_size=100):
+def plot_phase_spaces(axes, data, title='Phase space', bunch_count=None,
+                      grid_size=100):
     """Plot four phase spaces onto the given array of axes."""
-    if not title:
-        title = 'Phase space'
-    figure = axes[0,0].figure
-    figure.suptitle(title)
+    axes[0,0].figure.suptitle(title)
     x = data.T[0]
     px = data.T[1]
     y = data.T[2]
@@ -293,8 +296,7 @@ def plot_phase_spaces(axes, data, title=None, bunch_count=None, grid_size=100):
 
 def plot_bunch_energies(axes, data, title='Energy spectra', bins=300):
     """Plot per-bunch energy spectra histograms."""
-    figure = axes.figure
-    figure.suptitle(title)
+    axes.figure.suptitle(title)
     bunch_count = len(data)
     gamma = [numpy.sqrt(1 + numpy.square(bunch.T[5])) for bunch in data]
     mass = [get_mass(get_input_filename(i+1)) for i in range(bunch_count)]
@@ -313,8 +315,7 @@ def plot_bunch_energies(axes, data, title='Energy spectra', bins=300):
 
 def plot_total_energy(axes, data, title='Total energy spectrum', bins=300):
     """Plot total energy spectrum histogram on log scale."""
-    figure = axes.figure
-    figure.suptitle(title)
+    axes.figure.suptitle(title)
     gamma = numpy.sqrt(1 + numpy.square(data.T[5]))
     mass = get_mass(get_input_filename(1))
     W = (gamma - 1)*mass/1e6
@@ -338,9 +339,9 @@ def plot_all(bunch_count):
     print('Loading experimental data...')
     try:
         experimental_results = load_experimental_results('experimental_data.txt')
-    except FileNotFoundError:
-        print('File not found: experimental_data.txt. '
-              'Continuing without experimental data.')
+    except FileNotFoundError as err:
+        print(f'Experimental results data file not found: {err}')
+        print('Continuing without experimental data.')
         experimental_results = None
     print('Loading statistical data...')
     try:
@@ -353,21 +354,26 @@ def plot_all(bunch_count):
         combined_ydata = combine_bunch_values(ydata)
         print('Plotting beam size...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_beam_size(axes, xdata, [], combined_xdata)
+        plot_beam_size(axes, xdata, combined_data=combined_xdata)
         figure.savefig('beam-size')
         matplotlib.pyplot.close(figure)
         if experimental_results:
             figure, axes = matplotlib.pyplot.subplots(dpi=300)
-            plot_beam_size(axes, xdata, experimental_results, combined_xdata)
+            plot_beam_size(axes, xdata, combined_data=combined_xdata,
+                           experiment_data=experimental_results)
             figure.savefig('beam-size-vs-experiment')
             matplotlib.pyplot.close(figure)
         print('Plotting emittance...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_emittance(axes, xdata, ydata, combined_xdata, combined_ydata)
+        plot_emittance(axes, xdata, ydata,
+                       combined_xdata=combined_xdata,
+                       combined_ydata=combined_ydata)
         figure.savefig('emittance')
         matplotlib.pyplot.close(figure)
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_emittance_growth(axes, xdata, ydata, combined_xdata, combined_ydata)
+        plot_emittance_growth(axes, xdata, ydata,
+                              combined_xdata=combined_xdata,
+                              combined_ydata=combined_ydata)
         figure.savefig('emittance-growth')
         matplotlib.pyplot.close(figure)
     print('Loading bunch count data...')
@@ -379,7 +385,7 @@ def plot_all(bunch_count):
     else:
         print('Plotting bunch counts...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_bunch_count(axes, data,'t', bunch_count)
+        plot_bunch_count(axes, data, 't', max_bunch=bunch_count)
         figure.savefig('bunch-count')
         matplotlib.pyplot.close(figure)
     print('Loading initial phase space data...')
