@@ -1057,13 +1057,14 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchParticleBaseFrame):
         PlotMultiBunchParticleBaseFrame.__init__(self, parent)
     def create_figure(self):
         """Create four subplots (override base class)."""
-        self.fig, self.axes = matplotlib.pyplot.subplots(nrows=2, ncols=2,
-                                                         figsize=(8,6))
+        self.fig = Figure(figsize=(8,6))
         self.subfig = []
-        self.subfig.append(self.axes[0,0])
-        self.subfig.append(self.axes[0,1])
-        self.subfig.append(self.axes[1,0])
-        self.subfig.append(self.axes[1,1])
+        self.subfig.append(self.fig.add_subplot(221))
+        self.subfig.append(self.fig.add_subplot(222))
+        self.subfig.append(self.fig.add_subplot(223))
+        self.subfig.append(self.fig.add_subplot(224))
+        self.axes = np.array([[self.subfig[0], self.subfig[1]],
+                              [self.subfig[2], self.subfig[3]]])
         for subfig in self.subfig:
             box = subfig.get_position()
             subfig.set_position([box.x0*1.1, box.y0*1.1,
