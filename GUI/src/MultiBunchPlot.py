@@ -239,15 +239,6 @@ def plot_phase_space(axes, x, y, xlabel, ylabel, grid_size=100):
     add_plot_margins(axes, 0.1)
     plot_phase_space_hist1d(axes, hist2d, grid_size)
 
-def add_plot_margins(axes, margin):
-    """Adjust the axis limits to include a margin around the data."""
-    xmin, xmax = axes.get_xlim()
-    ymin, ymax = axes.get_ylim()
-    xmargin = margin*(xmax - xmin)
-    ymargin = margin*(ymax - ymin)
-    axes.set_xlim(xmin - xmargin, xmax + xmargin)
-    axes.set_ylim(ymin - ymargin, ymax + ymargin)
-
 def plot_phase_space_hist2d(axes, x, y, grid_size=100):
     """Plot the 2d histogram part of the phase space plot."""
     colour_map = matplotlib.cm.get_cmap('jet')
@@ -332,6 +323,15 @@ def plot_total_energy(axes, data, title='Total energy spectrum', bins=300):
     axes.set_xlabel('Energy (MeV)')
     axes.set_ylabel('Number of macroparticles')
     axes.set_yscale('log')
+
+def add_plot_margins(axes, margin):
+    """Adjust the axis limits to include a margin around the data."""
+    xmin, xmax = axes.get_xlim()
+    ymin, ymax = axes.get_ylim()
+    xmargin = margin*(xmax - xmin)
+    ymargin = margin*(ymax - ymin)
+    axes.set_xlim(xmin - xmargin, xmax + xmargin)
+    axes.set_ylim(ymin - ymargin, ymax + ymargin)
 
 def plot_all(bunch_count):
     """Run and save all plots consecutively."""
