@@ -931,8 +931,13 @@ class PlotMBBeamSizeFrame(PlotMultiBunchBaseFrame):
         self.create_plot_button()
     def plot(self):
         """Plot rms beam size and compare with experimental results."""
-        experimental_results = MultiBunchPlot.load_experimental_results(
-            'experimental_data.txt')
+        try:
+            experimental_results = MultiBunchPlot.load_experimental_results(
+                'experimental_data.txt')
+        except FileNotFoundError as err:
+            print(f'Experimental data file not found: {err}')
+            print('Continuing without experimental data.')
+            experimental_results = None
         xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
         self.subfig.cla()
         MultiBunchPlot.plot_beam_size(self.subfig.axes, xdata,
