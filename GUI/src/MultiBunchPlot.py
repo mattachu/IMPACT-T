@@ -14,96 +14,116 @@ def plot_all(bunch_count):
               'Continuing without experimental data.')
         experimental_results = None
     print('Loading statistical data...')
-    xdata, ydata = load_statistics_data(bunch_count)
-    combined_xdata = combine_bunch_values(xdata)
-    combined_ydata = combine_bunch_values(ydata)
-    # Beam size
-    print('Plotting beam size...')
-    figure, axes = matplotlib.pyplot.subplots(dpi=300)
-    plot_beam_size(axes, xdata, [], combined_xdata)
-    figure.savefig('beam-size')
-    matplotlib.pyplot.close(figure)
-    if experimental_results:
+    try:
+        xdata, ydata = load_statistics_data(bunch_count)
+    except FileNotFoundError as err:
+        print(f'Statistical data file not found: {err}')
+        print('Skipping statistical plots.')
+    else:
+        combined_xdata = combine_bunch_values(xdata)
+        combined_ydata = combine_bunch_values(ydata)
+        print('Plotting beam size...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_beam_size(axes, xdata, experimental_results, combined_xdata)
-        figure.savefig('beam-size-vs-experiment')
+        plot_beam_size(axes, xdata, [], combined_xdata)
+        figure.savefig('beam-size')
         matplotlib.pyplot.close(figure)
-    # Emittance
-    print('Plotting emittance...')
-    figure, axes = matplotlib.pyplot.subplots(dpi=300)
-    plot_emittance(axes, xdata, ydata, combined_xdata, combined_ydata)
-    figure.savefig('emittance')
-    matplotlib.pyplot.close(figure)
-    figure, axes = matplotlib.pyplot.subplots(dpi=300)
-    plot_emittance_growth(axes, xdata, ydata, combined_xdata, combined_ydata)
-    figure.savefig('emittance-growth')
-    matplotlib.pyplot.close(figure)
-    # Particle plots: initial
+        if experimental_results:
+            figure, axes = matplotlib.pyplot.subplots(dpi=300)
+            plot_beam_size(axes, xdata, experimental_results, combined_xdata)
+            figure.savefig('beam-size-vs-experiment')
+            matplotlib.pyplot.close(figure)
+        print('Plotting emittance...')
+        figure, axes = matplotlib.pyplot.subplots(dpi=300)
+        plot_emittance(axes, xdata, ydata, combined_xdata, combined_ydata)
+        figure.savefig('emittance')
+        matplotlib.pyplot.close(figure)
+        figure, axes = matplotlib.pyplot.subplots(dpi=300)
+        plot_emittance_growth(axes, xdata, ydata, combined_xdata, combined_ydata)
+        figure.savefig('emittance-growth')
+        matplotlib.pyplot.close(figure)
     print('Loading initial phase space data...')
-    data = load_phase_space_data(40, bunch_count)
-    combined_data = combine_phase_space_data(data)
-    print('Plotting initial phase space data...')
-    figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-    plot_phase_spaces(axes, combined_data, title='Initial phase space',
-                      bunch_count=bunch_count, grid_size=300)
-    figure.savefig('phase-space-initial')
-    matplotlib.pyplot.close(figure)
-    print('Plotting initial energy spectra...')
-    figure, axes = matplotlib.pyplot.subplots(dpi=300)
-    plot_bunch_energies(axes, data, title='Initial energy spectra', bins=300)
-    figure.savefig('energies-initial')
-    matplotlib.pyplot.close(figure)
-    figure, axes = matplotlib.pyplot.subplots(dpi=300)
-    plot_total_energy(
-        axes, combined_data, title='Initial total energy spectrum', bins=300)
-    figure.savefig('energy-initial')
-    matplotlib.pyplot.close(figure)
-    # Particle plots: final
-    print('Loading final phase space data...')
-    data = load_phase_space_data(50, bunch_count)
-    combined_data = combine_phase_space_data(data)
-    print('Plotting final phase space data...')
-    figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-    plot_phase_spaces(axes, combined_data, title='Final phase space',
-                      bunch_count=bunch_count, grid_size=300)
-    figure.savefig('phase-space-final')
-    matplotlib.pyplot.close(figure)
-    print('Plotting final energy spectra...')
-    figure, axes = matplotlib.pyplot.subplots(dpi=300)
-    plot_bunch_energies(axes, data, title='Final energy spectra', bins=300)
-    figure.savefig('energies-final')
-    matplotlib.pyplot.close(figure)
-    figure, axes = matplotlib.pyplot.subplots(dpi=300)
-    plot_total_energy(
-        axes, combined_data, title='Final total energy spectrum', bins=300)
-    figure.savefig('energy-final')
-    matplotlib.pyplot.close(figure)
-    # Particle plots: BPMs
-    lattice = get_lattice()
-    bpm_list = get_bpms(lattice)
-    for location, filenumber in bpm_list:
-        print(f'Loading BPM {filenumber} phase space data...')
-        data = load_phase_space_data(filenumber, bunch_count)
+    try:
+        data = load_phase_space_data(40, bunch_count)
+    except FileNotFoundError as err:
+        print(f'Phase space data file not found: {err}')
+        print('Skipping initial phase space step.')
+    else:
         combined_data = combine_phase_space_data(data)
-        print(f'Plotting BPM {filenumber} phase space data...')
+        print('Plotting initial phase space data...')
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-        plot_phase_spaces(axes, combined_data,
-                          title=f'Phase space at z = {location}',
+        plot_phase_spaces(axes, combined_data, title='Initial phase space',
                           bunch_count=bunch_count, grid_size=300)
-        figure.savefig(f'phase-space-{filenumber}')
+        figure.savefig('phase-space-initial')
         matplotlib.pyplot.close(figure)
-        print(f'Plotting BPM {filenumber} energy spectra...')
+        print('Plotting initial energy spectra...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_bunch_energies(
-            axes, data, title=f'BPM {filenumber} energy spectra', bins=300)
-        figure.savefig(f'energies-{filenumber}')
+        plot_bunch_energies(axes, data, title='Initial energy spectra', bins=300)
+        figure.savefig('energies-initial')
         matplotlib.pyplot.close(figure)
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
         plot_total_energy(
-            axes, combined_data,
-            title=f'BPM {filenumber} total energy spectrum', bins=300)
-        figure.savefig(f'energy-{filenumber}')
+            axes, combined_data, title='Initial total energy spectrum', bins=300)
+        figure.savefig('energy-initial')
         matplotlib.pyplot.close(figure)
+    print('Loading final phase space data...')
+    try:
+        data = load_phase_space_data(50, bunch_count)
+    except FileNotFoundError as err:
+        print(f'Phase space data file not found: {err}')
+        print('Skipping final phase space step.')
+    else:
+        combined_data = combine_phase_space_data(data)
+        print('Plotting final phase space data...')
+        figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
+        plot_phase_spaces(axes, combined_data, title='Final phase space',
+                          bunch_count=bunch_count, grid_size=300)
+        figure.savefig('phase-space-final')
+        matplotlib.pyplot.close(figure)
+        print('Plotting final energy spectra...')
+        figure, axes = matplotlib.pyplot.subplots(dpi=300)
+        plot_bunch_energies(axes, data, title='Final energy spectra', bins=300)
+        figure.savefig('energies-final')
+        matplotlib.pyplot.close(figure)
+        figure, axes = matplotlib.pyplot.subplots(dpi=300)
+        plot_total_energy(
+            axes, combined_data, title='Final total energy spectrum', bins=300)
+        figure.savefig('energy-final')
+        matplotlib.pyplot.close(figure)
+    print('Getting list of BPMs...')
+    try:
+        lattice = get_lattice()
+        bpm_list = get_bpms(lattice)
+    except FileNotFoundError as err:
+        print(f'Input file not found: {err}')
+        print('Skipping BPM plot steps.')
+    else:
+        for location, filenumber in bpm_list:
+            print(f'Loading BPM {filenumber} phase space data...')
+            try:
+                data = load_phase_space_data(filenumber, bunch_count)
+            except FileNotFoundError as err:
+                print(f'BPM data file not found: {err}')
+                print('Skipping this BPM plot step.')
+            else:
+                combined_data = combine_phase_space_data(data)
+                print(f'Plotting BPM {filenumber} phase space data...')
+                figure, axes = matplotlib.pyplot.subplots(2, 2, dpi=300)
+                plot_phase_spaces(axes, combined_data,
+                                  title=f'Phase space at z = {location}',
+                                  bunch_count=bunch_count, grid_size=300)
+                figure.savefig(f'phase-space-{filenumber}')
+                matplotlib.pyplot.close(figure)
+                print(f'Plotting BPM {filenumber} energy spectra...')
+                figure, axes = matplotlib.pyplot.subplots(dpi=300)
+                plot_bunch_energies(axes, data, bins=300,
+                                    title=f'BPM {filenumber} energy spectra')
+                figure.savefig(f'energies-{filenumber}')
+                matplotlib.pyplot.close(figure)
+                figure, axes = matplotlib.pyplot.subplots(dpi=300)
+                plot_total_energy(axes, combined_data, bins=300,
+                                  title=f'BPM {filenumber} total energy spectrum')
+                figure.savefig(f'energy-{filenumber}')
+                matplotlib.pyplot.close(figure)
 
 def get_input_filename(bunch):
     """Return the filename of the input file for a particular bunch."""
