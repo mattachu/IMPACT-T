@@ -170,10 +170,10 @@ class AdvancedPlotControlFrame(tk.Toplevel):
                                                command=self.MBBeamSizePlot)
         self.button_MBBeamSizePlot.grid(row=rowN, column=0, columnspan=1,
                                         padx=5, pady=1, sticky="nswe")
-        self.button_MBPhaseSpacePlot = tk.Button(self.frame2,
-                                                 text='Phase space',
-                                                 command=self.MBPhaseSpacePlot)
-        self.button_MBPhaseSpacePlot.grid(row=rowN, column=1, columnspan=1,
+        self.button_MBBunchCountPlot = tk.Button(self.frame2,
+                                                 text='Bunch count',
+                                                 command=self.MBBunchCountPlot)
+        self.button_MBBunchCountPlot.grid(row=rowN, column=1, columnspan=1,
                                           padx=5, pady=1, sticky="nswe")
         rowN += 1
         self.button_MBEmittancePlot = tk.Button(self.frame2,
@@ -197,6 +197,12 @@ class AdvancedPlotControlFrame(tk.Toplevel):
                                                   command=self.MBTotalEnergyPlot)
         self.button_MBTotalEnergyPlot.grid(row=rowN, column=1, columnspan=1,
                                            padx=5, pady=1, sticky="nswe")
+        rowN += 1
+        self.button_MBPhaseSpacePlot = tk.Button(self.frame2,
+                                                 text='Phase space',
+                                                 command=self.MBPhaseSpacePlot)
+        self.button_MBPhaseSpacePlot.grid(row=rowN, column=0, columnspan=2,
+                                          padx=5, pady=1, sticky="nswe")
         rowN += 1
 
 
@@ -385,6 +391,13 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         plotWindow = tk.Toplevel(self)
         plotWindow.title('Multi-bunch beam size plot')
         l = PlotMBBeamSizeFrame(plotWindow)
+        l.pack()
+
+    def MBBunchCountPlot(self):
+        print('Multi-bunch bunch count plot')
+        plotWindow = tk.Toplevel(self)
+        plotWindow.title('Multi-bunch bunch count plot')
+        l = PlotMBBunchCountFrame(plotWindow)
         l.pack()
 
     def MBEmittancePlot(self):
@@ -931,13 +944,30 @@ class PlotMBBeamSizeFrame(PlotMultiBunchBaseFrame):
         self.create_plot_button()
     def plot(self):
         """Plot rms beam size and compare with experimental results."""
-        experimental_results = MultiBunchPlot.load_experimental_results(
-            'experimental_data.txt')
+        try:
+            experimental_results = MultiBunchPlot.load_experimental_results(
+                'experimental_data.txt')
+        except FileNotFoundError as err:
+            print(f'Experimental data file not found: {err}')
+            print('Continuing without experimental data.')
+            experimental_results = None
         xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
-        combined_xdata = MultiBunchPlot.combine_bunch_values(xdata)
         self.subfig.cla()
         MultiBunchPlot.plot_beam_size(self.subfig.axes, xdata,
-                                      experimental_results, combined_xdata)
+                                      experiment_data=experimental_results)
+        self.canvas.draw()
+
+class PlotMBBunchCountFrame(PlotMultiBunchBaseFrame):
+    """Frame to plot bunch counts for selected bunches."""
+    def __init__(self, parent):
+        PlotMultiBunchBaseFrame.__init__(self, parent)
+    def plot(self):
+        """Plot bunch counts up to the selected max bunch."""
+        self.subfig.cla()
+        self.data = MultiBunchPlot.load_bunch_count_data()
+        MultiBunchPlot.plot_bunch_count(self.subfig, self.data,
+                                        xaxis=self.get_selected_xaxis(),
+                                        max_bunch=self.get_max_bunch())
         self.canvas.draw()
 
 class PlotMBEmittanceFrame(PlotMultiBunchBaseFrame):
@@ -953,11 +983,8 @@ class PlotMBEmittanceFrame(PlotMultiBunchBaseFrame):
     def plot(self):
         """Plot average of x and y emittance for selected bunches."""
         xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
-        combined_xdata = MultiBunchPlot.combine_bunch_values(xdata)
-        combined_ydata = MultiBunchPlot.combine_bunch_values(ydata)
         self.subfig.cla()
-        MultiBunchPlot.plot_emittance(self.subfig.axes, xdata, ydata,
-                                      combined_xdata, combined_ydata)
+        MultiBunchPlot.plot_emittance(self.subfig.axes, xdata, ydata)
         self.canvas.draw()
 
 class PlotMBEmittanceGrowthFrame(PlotMultiBunchBaseFrame):
@@ -973,11 +1000,8 @@ class PlotMBEmittanceGrowthFrame(PlotMultiBunchBaseFrame):
     def plot(self):
         """Plot growth of average x and y emittance for selected bunches."""
         xdata, ydata = MultiBunchPlot.load_statistics_data(self.get_max_bunch())
-        combined_xdata = MultiBunchPlot.combine_bunch_values(xdata)
-        combined_ydata = MultiBunchPlot.combine_bunch_values(ydata)
         self.subfig.cla()
-        MultiBunchPlot.plot_emittance_growth(self.subfig.axes, xdata, ydata,
-                                             combined_xdata, combined_ydata)
+        MultiBunchPlot.plot_emittance_growth(self.subfig.axes, xdata, ydata)
         self.canvas.draw()
 
 class PlotMultiBunchParticleBaseFrame(PlotMultiBunchBaseFrame):
@@ -1059,13 +1083,14 @@ class PlotMBPhaseSpaceFrame(PlotMultiBunchParticleBaseFrame):
         PlotMultiBunchParticleBaseFrame.__init__(self, parent)
     def create_figure(self):
         """Create four subplots (override base class)."""
-        self.fig, self.axes = matplotlib.pyplot.subplots(nrows=2, ncols=2,
-                                                         figsize=(8,6))
+        self.fig = Figure(figsize=(8,6))
         self.subfig = []
-        self.subfig.append(self.axes[0,0])
-        self.subfig.append(self.axes[0,1])
-        self.subfig.append(self.axes[1,0])
-        self.subfig.append(self.axes[1,1])
+        self.subfig.append(self.fig.add_subplot(221))
+        self.subfig.append(self.fig.add_subplot(222))
+        self.subfig.append(self.fig.add_subplot(223))
+        self.subfig.append(self.fig.add_subplot(224))
+        self.axes = np.array([[self.subfig[0], self.subfig[1]],
+                              [self.subfig[2], self.subfig[3]]])
         for subfig in self.subfig:
             box = subfig.get_position()
             subfig.set_position([box.x0*1.1, box.y0*1.1,
