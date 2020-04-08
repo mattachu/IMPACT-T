@@ -71,6 +71,13 @@ def load_statistics_data(bunch_count):
             ydata.append([line.split() for line in f.readlines()])
     return xdata, ydata
 
+def load_bunch_count_data():
+    """Load bunch counts vs time from `fort.11`."""
+    with open('fort.11', 'r') as f:
+        data = [[int(value) if value.isdigit() else float(value)
+                for value in line.split()] for line in f.readlines()]
+    return numpy.array(data)
+
 def load_phase_space_data(filenumber, bunch_count):
     """Load phase space data per bunch as a list of datasets."""
     data = []
@@ -201,6 +208,25 @@ def plot_emittance_growth_single(axes, xdata, ydata, fmt, label):
     initial_emittance = max(e[0], 1.0e-10)
     growth = [emittance/initial_emittance - 1 for emittance in e]
     axes.plot(t, growth, fmt, linewidth=1, label=label)
+
+def plot_bunch_count(axes, data, xaxis, max_bunch):
+    """Plot the number of particles per bunch against 't' or 'z'."""
+    axes.set_title('Bunch counts')
+    if xaxis == 't':
+        x = data.T[1]
+        xlabel = 'Time (s)'
+    elif xaxis == 'z':
+        x = data.T[2]*1e3
+        xlabel = 'z-location (mm)'
+    else:
+        raise ValueError('Incorrect xaxis specifier: ' + str(xaxis))
+    counts = data.T[4:4+max_bunch]
+    labels = [f'Bunch {i+1}' for i in range(len(counts))]
+    axes.stackplot(x, counts, labels=labels)
+    axes.set_xlim(left=0.0)
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel('Number of macroparticles')
+    axes.legend()
 
 def plot_phase_space(axes, x, y, xlabel, ylabel, grid_size=100):
     """Plot a single phase space onto the given axes."""
@@ -343,6 +369,18 @@ def plot_all(bunch_count):
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
         plot_emittance_growth(axes, xdata, ydata, combined_xdata, combined_ydata)
         figure.savefig('emittance-growth')
+        matplotlib.pyplot.close(figure)
+    print('Loading bunch count data...')
+    try:
+        data = load_bunch_count_data()
+    except FileNotFoundError as err:
+        print(f'Bunch count data file not found: {err}')
+        print('Skipping bunch count plot.')
+    else:
+        print('Plotting bunch counts...')
+        figure, axes = matplotlib.pyplot.subplots(dpi=300)
+        plot_bunch_count(axes, data,'t', bunch_count)
+        figure.savefig('bunch-count')
         matplotlib.pyplot.close(figure)
     print('Loading initial phase space data...')
     try:
