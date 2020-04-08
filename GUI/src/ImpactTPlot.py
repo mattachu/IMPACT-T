@@ -170,10 +170,10 @@ class AdvancedPlotControlFrame(tk.Toplevel):
                                                command=self.MBBeamSizePlot)
         self.button_MBBeamSizePlot.grid(row=rowN, column=0, columnspan=1,
                                         padx=5, pady=1, sticky="nswe")
-        self.button_MBPhaseSpacePlot = tk.Button(self.frame2,
-                                                 text='Phase space',
-                                                 command=self.MBPhaseSpacePlot)
-        self.button_MBPhaseSpacePlot.grid(row=rowN, column=1, columnspan=1,
+        self.button_MBBunchCountPlot = tk.Button(self.frame2,
+                                                 text='Bunch count',
+                                                 command=self.MBBunchCountPlot)
+        self.button_MBBunchCountPlot.grid(row=rowN, column=1, columnspan=1,
                                           padx=5, pady=1, sticky="nswe")
         rowN += 1
         self.button_MBEmittancePlot = tk.Button(self.frame2,
@@ -197,6 +197,12 @@ class AdvancedPlotControlFrame(tk.Toplevel):
                                                   command=self.MBTotalEnergyPlot)
         self.button_MBTotalEnergyPlot.grid(row=rowN, column=1, columnspan=1,
                                            padx=5, pady=1, sticky="nswe")
+        rowN += 1
+        self.button_MBPhaseSpacePlot = tk.Button(self.frame2,
+                                                 text='Phase space',
+                                                 command=self.MBPhaseSpacePlot)
+        self.button_MBPhaseSpacePlot.grid(row=rowN, column=0, columnspan=2,
+                                          padx=5, pady=1, sticky="nswe")
         rowN += 1
 
 
@@ -385,6 +391,13 @@ class AdvancedPlotControlFrame(tk.Toplevel):
         plotWindow = tk.Toplevel(self)
         plotWindow.title('Multi-bunch beam size plot')
         l = PlotMBBeamSizeFrame(plotWindow)
+        l.pack()
+
+    def MBBunchCountPlot(self):
+        print('Multi-bunch bunch count plot')
+        plotWindow = tk.Toplevel(self)
+        plotWindow.title('Multi-bunch bunch count plot')
+        l = PlotMBBunchCountFrame(plotWindow)
         l.pack()
 
     def MBEmittancePlot(self):
@@ -942,6 +955,19 @@ class PlotMBBeamSizeFrame(PlotMultiBunchBaseFrame):
         self.subfig.cla()
         MultiBunchPlot.plot_beam_size(self.subfig.axes, xdata,
                                       experiment_data=experimental_results)
+        self.canvas.draw()
+
+class PlotMBBunchCountFrame(PlotMultiBunchBaseFrame):
+    """Frame to plot bunch counts for selected bunches."""
+    def __init__(self, parent):
+        PlotMultiBunchBaseFrame.__init__(self, parent)
+    def plot(self):
+        """Plot bunch counts up to the selected max bunch."""
+        self.subfig.cla()
+        self.data = MultiBunchPlot.load_bunch_count_data()
+        MultiBunchPlot.plot_bunch_count(self.subfig, self.data,
+                                        xaxis=self.get_selected_xaxis(),
+                                        max_bunch=self.get_max_bunch())
         self.canvas.draw()
 
 class PlotMBEmittanceFrame(PlotMultiBunchBaseFrame):
