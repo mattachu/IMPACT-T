@@ -283,7 +283,7 @@ def plot_phase_spaces(axes, data, title='Phase space', bunch_count=None,
         bunch_count = get_bunch_count()
     if not is_mass_matched(bunch_count):
         print(f'Masses for {bunch_count} bunches do not match, '
-              + 'so cannot plot combined energy distribution. '
+              + 'so cannot plot combined energy distribution.' + '\n'
               + 'Falling back to dimensionless momentum plot.')
         plot_phase_space(
             axes[1,0], z*1e3, pz, 'z (mm)', 'pz (dimensionless βγ)', grid_size)
