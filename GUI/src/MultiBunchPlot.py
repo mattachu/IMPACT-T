@@ -50,7 +50,7 @@ def is_mass_matched(bunch_count):
     return len(set(mass)) == 1
 
 def read_input_file(filename):
-    """Read input file and return list of input lines."""
+    """Read input file and return list of input lines, excluding comments."""
     with open(filename, 'r') as f:
         return [line.strip() for line in f.readlines() if line[0] != '!']
 
