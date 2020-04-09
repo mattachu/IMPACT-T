@@ -98,8 +98,19 @@ def load_phase_space_data(filenumber, bunch_list):
     """Load phase space data per bunch as a list of arrays."""
     data = []
     for bunch in bunch_list:
-        data.append(load_data_from_file(f'fort.{filenumber+bunch-1}'))
+        this_data = load_data_from_file(f'fort.{filenumber+bunch-1}')
+        data.append(calculate_energies(this_data, bunch))
     return data
+
+def calculate_energies(data, bunch):
+    """Calculate the energies for per-bunch data and save as an extra column."""
+    gamma = numpy.sqrt(1 + numpy.square(data.T[5]))
+    mass = get_mass(get_input_filename(bunch))
+    W = (gamma - 1)*mass
+    new_data = numpy.zeros((data.shape[0], data.shape[1]+1))
+    new_data[:,:-1] = data
+    new_data[:,-1] = W
+    return new_data
 
 def combine_bunch_values(data, bunch_list):
     """Combine values of separate bunches into a single summary dataset."""
@@ -273,23 +284,13 @@ def plot_phase_spaces(axes, data, bunch_list, title=None, grid_size=100):
     py = data.T[3]
     z = data.T[4]
     pz = data.T[5]
+    W = data.T[6]
     xp = px/pz
     yp = py/pz
     plot_phase_space(axes[0,0], x*1e3, xp*1e3, 'x (mm)', 'x` (mrad)', grid_size)
     plot_phase_space(axes[0,1], y*1e3, yp*1e3, 'y (mm)', 'y` (mrad)', grid_size)
     plot_phase_space(axes[1,1], x*1e3, y*1e3, 'x (mm)', 'y (mm)', grid_size)
-    if not is_mass_matched(bunch_list):
-        print(f'Masses for {bunch_text(bunch_list)} do not match, '
-              + 'so cannot plot combined energy distribution.' + '\n'
-              + 'Falling back to dimensionless momentum plot.')
-        plot_phase_space(
-            axes[1,0], z*1e3, pz, 'z (mm)', 'pz (dimensionless βγ)', grid_size)
-    else:
-        mass = get_mass(get_input_filename(1))
-        gamma = numpy.sqrt(1 + numpy.square(pz))
-        W = (gamma - 1)*mass
-        plot_phase_space(
-            axes[1,0], z*1e3, W/1e6, 'z (mm)', 'Energy (MeV)', grid_size)
+    plot_phase_space(axes[1,0], z*1e3, W/1e6, 'z (mm)', 'Energy (MeV)', grid_size)
 
 def plot_phase_space(axes, xdata, ydata, xlabel, ylabel, grid_size=100):
     """Plot a single phase space onto the given axes."""
@@ -327,9 +328,7 @@ def plot_bunch_energies(axes, data, bunch_list, title=None, bins=100):
     if not title:
         title = 'Energy spectra for ' + bunch_text(bunch_list)
     axes.figure.suptitle(title)
-    gamma = [numpy.sqrt(1 + numpy.square(bunch.T[5])) for bunch in data]
-    mass = [get_mass(get_input_filename(bunch)) for bunch in bunch_list]
-    W = [(gamma[i] - 1)*mass[i]/1e6 for i in range(len(bunch_list))]
+    W = [bunch.T[6]/1e6 for bunch in data]
     axes.hist(numpy.concatenate(W), bins=bins, label='Total',
               histtype='stepfilled', linewidth=1.0,
               color='red', facecolor=(1,0,0,0.1), edgecolor=(1,0,0,1.0))
@@ -347,9 +346,7 @@ def plot_total_energy(axes, combined_data, bunch_list, title=None, bins=100):
     if not title:
         title = 'Total energy spectrum for ' + bunch_text(bunch_list)
     axes.figure.suptitle(title)
-    gamma = numpy.sqrt(1 + numpy.square(combined_data.T[5]))
-    mass = get_mass(get_input_filename(1))
-    W = (gamma - 1)*mass/1e6
+    W = combined_data.T[6]/1e6
     axes.hist(W, bins=bins, histtype='stepfilled', linewidth=1.0,
               color='red', facecolor=(1,0,0,0.1), edgecolor=(1,0,0,1.0))
     axes.set_xlabel('Energy (MeV)')
