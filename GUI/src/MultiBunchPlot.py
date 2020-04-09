@@ -368,6 +368,7 @@ def add_plot_margins(axes, margin):
 
 def plot_all(bunch_list):
     """Run and save all plots consecutively."""
+    full_bunch_list = list(range(1, int(get_bunch_count()) + 1))
     print('Loading experimental data...')
     try:
         experimental_results = load_experimental_results()
@@ -423,11 +424,12 @@ def plot_all(bunch_list):
         matplotlib.pyplot.close(figure)
     print('Loading initial phase space data...')
     try:
-        data = load_phase_space_data(40, bunch_list)
+        full_data = load_phase_space_data(40, full_bunch_list)
     except FileNotFoundError as err:
         print(f'Phase space data file not found: {err}')
         print('Skipping initial phase space step.')
     else:
+        data = [full_data[bunch-1] for bunch in bunch_list]
         combined_data = combine_phase_space_data(data)
         print('Plotting initial phase space data...')
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
@@ -435,6 +437,12 @@ def plot_all(bunch_list):
             title=f'Initial phase space for {bunch_text(bunch_list)}')
         figure.savefig('phase-space-initial')
         matplotlib.pyplot.close(figure)
+        for bunch in full_bunch_list:
+            figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
+            plot_phase_spaces(axes, full_data[bunch-1], [bunch], grid_size=300,
+                title=f'Initial phase space for {bunch_text([bunch])}')
+            figure.savefig(f'phase-space-initial-bunch{bunch}')
+            matplotlib.pyplot.close(figure)
         print('Plotting initial energy spectra...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
         plot_bunch_energies(axes, data, bunch_list, bins=300,
@@ -448,11 +456,12 @@ def plot_all(bunch_list):
         matplotlib.pyplot.close(figure)
     print('Loading final phase space data...')
     try:
-        data = load_phase_space_data(50, bunch_list)
+        full_data = load_phase_space_data(50, full_bunch_list)
     except FileNotFoundError as err:
         print(f'Phase space data file not found: {err}')
         print('Skipping final phase space step.')
     else:
+        data = [full_data[bunch-1] for bunch in bunch_list]
         combined_data = combine_phase_space_data(data)
         print('Plotting final phase space data...')
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
@@ -460,6 +469,12 @@ def plot_all(bunch_list):
             title=f'Final phase space for {bunch_text(bunch_list)}')
         figure.savefig('phase-space-final')
         matplotlib.pyplot.close(figure)
+        for bunch in full_bunch_list:
+            figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
+            plot_phase_spaces(axes, full_data[bunch-1], [bunch], grid_size=300,
+                title=f'Final phase space for {bunch_text([bunch])}')
+            figure.savefig(f'phase-space-final-bunch{bunch}')
+            matplotlib.pyplot.close(figure)
         print('Plotting final energy spectra...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
         plot_bunch_energies(axes, data,  bunch_list, bins=300,
@@ -482,11 +497,12 @@ def plot_all(bunch_list):
         for location, filenumber in bpm_list:
             print(f'Loading BPM {filenumber} phase space data...')
             try:
-                data = load_phase_space_data(filenumber, bunch_list)
+                full_data = load_phase_space_data(filenumber, full_bunch_list)
             except FileNotFoundError as err:
                 print(f'BPM data file not found: {err}')
                 print('Skipping this BPM plot step.')
             else:
+                data = [full_data[bunch-1] for bunch in bunch_list]
                 combined_data = combine_phase_space_data(data)
                 print(f'Plotting BPM {filenumber} phase space data...')
                 figure, axes = matplotlib.pyplot.subplots(2, 2, dpi=300)
@@ -496,6 +512,14 @@ def plot_all(bunch_list):
                                   grid_size=300)
                 figure.savefig(f'phase-space-{filenumber}')
                 matplotlib.pyplot.close(figure)
+                for bunch in full_bunch_list:
+                    figure, axes = matplotlib.pyplot.subplots(2, 2, dpi=300)
+                    plot_phase_spaces(axes, full_data[bunch-1], [bunch],
+                                      title=(f'Phase space at z = {location} '
+                                             f'for {bunch_text([bunch])}'),
+                                      grid_size=300)
+                    figure.savefig(f'phase-space-{filenumber}-bunch{bunch}')
+                    matplotlib.pyplot.close(figure)
                 print(f'Plotting BPM {filenumber} energy spectra...')
                 figure, axes = matplotlib.pyplot.subplots(dpi=300)
                 plot_bunch_energies(axes, data, bunch_list, bins=300,
