@@ -188,8 +188,9 @@ def plot_beam_size(axes, data, bunch_list, xaxis='z', title=None,
     for i in range(len(bunch_list)):
         plot_beam_size_single(axes, data[i], xaxis, '--',
                               label=f'Bunch {bunch_list[i]} rms')
-    plot_beam_size_single(axes, combined_data, xaxis, 'r-',
-                          label=f'Combined rms')
+    if len(bunch_list) > 1:
+        plot_beam_size_single(axes, combined_data, xaxis, 'r-',
+                              label=f'Combined rms')
     axes.legend(fontsize='x-small')
 
 def plot_beam_size_experimental(axes, data):
@@ -218,12 +219,13 @@ def plot_emittance(axes, xdata, ydata, bunch_list, xaxis='t', title=None,
     for i in range(len(bunch_list)):
         plot_emittance_single(axes, xdata[i], ydata[i], xaxis,
                               '--', label=f'Bunch {bunch_list[i]}')
-    if combined_xdata is None:
-        combined_xdata = combine_bunch_values(xdata, bunch_list)
-    if combined_ydata is None:
-        combined_ydata = combine_bunch_values(ydata, bunch_list)
-    plot_emittance_single(axes, combined_xdata, combined_ydata, xaxis,
-                          'r-', label='Combined')
+    if len(bunch_list) > 1:
+        if combined_xdata is None:
+            combined_xdata = combine_bunch_values(xdata, bunch_list)
+        if combined_ydata is None:
+            combined_ydata = combine_bunch_values(ydata, bunch_list)
+        plot_emittance_single(axes, combined_xdata, combined_ydata, xaxis,
+                              'r-', label='Combined')
     axes.legend(fontsize='x-small')
 
 def plot_emittance_single(axes, xdata, ydata, xaxis, fmt, label):
@@ -243,12 +245,13 @@ def plot_emittance_growth(axes, xdata, ydata, bunch_list, xaxis='t', title=None,
     for i in range(len(bunch_list)):
         plot_emittance_growth_single(axes, xdata[i], ydata[i], xaxis,
                                      '--', label=f'Bunch {bunch_list[i]}')
-    if combined_xdata is None:
-        combined_xdata = combine_bunch_values(xdata, bunch_list)
-    if combined_ydata is None:
-        combined_ydata = combine_bunch_values(ydata, bunch_list)
-    plot_emittance_growth_single(axes, combined_xdata, combined_ydata, xaxis,
-                                 'r-', label=f'Combined')
+    if len(bunch_list) > 1:
+        if combined_xdata is None:
+            combined_xdata = combine_bunch_values(xdata, bunch_list)
+        if combined_ydata is None:
+            combined_ydata = combine_bunch_values(ydata, bunch_list)
+        plot_emittance_growth_single(axes, combined_xdata, combined_ydata, xaxis,
+                                     'r-', label=f'Combined')
     axes.legend(fontsize='x-small')
 
 def plot_emittance_growth_single(axes, xdata, ydata, xaxis, fmt, label):
@@ -329,9 +332,10 @@ def plot_bunch_energies(axes, data, bunch_list, title=None, bins=100):
         title = 'Energy spectra for ' + bunch_text(bunch_list)
     axes.figure.suptitle(title)
     W = [bunch.T[6]/1e6 for bunch in data]
-    axes.hist(numpy.concatenate(W), bins=bins, label='Total',
-              histtype='stepfilled', linewidth=1.0,
-              color='red', facecolor=(1,0,0,0.1), edgecolor=(1,0,0,1.0))
+    if len(bunch_list) > 1:
+        axes.hist(numpy.concatenate(W), bins=bins, label='Total',
+                  histtype='stepfilled', linewidth=1.0,
+                  color='red', facecolor=(1,0,0,0.1), edgecolor=(1,0,0,1.0))
     axes.hist(W, bins=bins, histtype='stepfilled', alpha=0.5,
               label=[f'Bunch {bunch}' for bunch in bunch_list])
     axes.set_xlabel('Energy (MeV)')
