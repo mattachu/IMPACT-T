@@ -911,26 +911,43 @@ class PlotMultiBunchBaseFrame(PlotBaseFrame):
         self.subfig.set_position([box.x0*1.4, box.y0, box.width, box.height])
         self.plot()
     def create_bunch_selector(self, Nbunch, per_bunch=True):
-        """Add selector (override base class, max bunch rather than single)."""
+        """Add selector (override base class, give 'from' and 'to' bunches)."""
         if per_bunch and Nbunch > 1:
-            self.bunch_list = ['All']
-            self.bunch_list.extend(range(1, Nbunch + 1))
-            self.bunch_default = tk.StringVar(self.option_frame, 'All')
-            self.bunch_label = tk.Label(self.option_frame,
-                                        text='Include bunches up to: ')
-            self.bunch_label.pack(side='left')
-            self.bunch_select = ttk.Combobox(self.option_frame,
-                                             text=self.bunch_default,
-                                             width=6,
-                                                values=self.bunch_list)
-        self.bunch_select.pack(fill='both', expand=1, side='left')
+            self.from_bunch_list = list(range(1, Nbunch + 1))
+            self.from_bunch_default = tk.StringVar(self.option_frame, '1')
+            self.from_bunch_label = tk.Label(self.option_frame,
+                                             text='Bunches from:')
+            self.from_bunch_label.pack(side='left')
+            self.from_bunch_select = ttk.Combobox(self.option_frame,
+                                                  text=self.from_bunch_default,
+                                                  width=6,
+                                                  values=self.from_bunch_list)
+            self.from_bunch_select.pack(fill='both', expand=1, side='left')
+            self.to_bunch_list = list(range(1, Nbunch + 1))
+            self.to_bunch_default = tk.StringVar(self.option_frame,
+                                                 str(self.Nbunch))
+            self.to_bunch_label = tk.Label(self.option_frame, text='to:')
+            self.to_bunch_label.pack(side='left')
+            self.to_bunch_select = ttk.Combobox(self.option_frame,
+                                                text=self.to_bunch_default,
+                                                width=6,
+                                                values=self.to_bunch_list)
+            self.to_bunch_select.pack(fill='both', expand=1, side='left')
+    def get_from_bunch(self):
+        """Get branch selected in options frame."""
+        if hasattr(self, "from_bunch_select"):
+            return int(self.from_bunch_select.get())
+        else:
+            return 1
+    def get_to_bunch(self):
+        """Get branch selected in options frame."""
+        if hasattr(self, "to_bunch_select"):
+            return int(self.to_bunch_select.get())
+        else:
+            return self.Nbunch
     def get_bunch_list(self):
         """Find which bunches are selected in the option frame."""
-        selected_bunch = self.get_selected_bunch()
-        if selected_bunch == 'All':
-            return list(range(1, self.Nbunch+1))
-        else:
-            return list(range(1, int(selected_bunch)+1))
+        return list(range(self.get_from_bunch(), self.get_to_bunch()+1))
 
 class PlotMBBeamSizeFrame(PlotMultiBunchBaseFrame):
     """Frame to plot rms beam sizes for selected bunches."""
