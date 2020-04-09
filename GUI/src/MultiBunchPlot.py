@@ -20,19 +20,20 @@ def get_bunch_count():
     return int(input[1].split()[2])
 
 def get_lattice():
-    """Read the lattice from the first input file."""
+    """Get the lattice from the first input file as a list of lists."""
     input = read_input_file(get_input_filename(1))
     return [line.split() for line in input[9:]]
 
 def get_bpms(lattice):
-    """Return the location and file number of all BPMs in the lattice."""
+    """Get the location and file number of all BPMs as a list of tuples."""
     return [(str(float(elem[4])*1000) + ' mm', int(elem[2]))
             for elem in lattice if elem[3]=='-2']
 
-def get_bunch_counts(bunch_count):
-    """Return a list of the particle counts for each bunch."""
-    input_filenames = [get_input_filename(i+1) for i in range(bunch_count)]
-    return [get_particle_count(filename) for filename in input_filenames]
+def get_bunch_counts(bunch_list):
+    """Get the particle counts for each bunch as an array."""
+    input_filenames = [get_input_filename(bunch) for bunch in bunch_list]
+    counts = [get_particle_count(filename) for filename in input_filenames]
+    return numpy.array(counts)
 
 def get_particle_count(filename):
     """Get the macroparticle count from a given input file."""
@@ -44,59 +45,78 @@ def get_mass(filename):
     input = read_input_file(filename)
     return float(input[8].split()[2])
 
-def is_mass_matched(bunch_count):
+def is_mass_matched(bunch_list):
     """Check whether the particle mass values are the same for given bunches."""
-    mass = [get_mass(get_input_filename(i+1)) for i in range(bunch_count)]
+    mass = [get_mass(get_input_filename(bunch)) for bunch in bunch_list]
     return len(set(mass)) == 1
+
+def bunch_text(bunch_list):
+    """Create a text string to describe the bunch list for titles."""
+    if len(bunch_list) == 1:
+        return f'bunch {bunch_list[0]}'
+    elif len(bunch_list) == get_bunch_count():
+        return 'all bunches'
+    elif bunch_list[-1] - bunch_list[0] + 1 == len(bunch_list):
+        return f'bunches {bunch_list[0]} to {bunch_list[-1]}'
+    else:
+        return ('bunches '
+                + ', '.join([str(bunch) for bunch in bunch_list[:-1]])
+                + ' and '
+                + str(bunch_list[-1]))
 
 def read_input_file(filename):
     """Read input file and return list of input lines, excluding comments."""
     with open(filename, 'r') as f:
         return [line.strip() for line in f.readlines() if line[0] != '!']
 
-def load_experimental_results(filename):
-    """Return z, rms beam size and error values from experimental data (m)."""
+def load_data_from_file(filename, header=0):
+    """Load data from a text file, skipping header rows, and return an array."""
     with open(filename, 'r') as f:
-        data = [line.split() for line in f.readlines()[1:]]
-    return [[float(datum) for datum in row] for row in data]
-
-def load_statistics_data(bunch_count):
-    """Load simulation data per bunch from statistics files."""
-    xdata = []
-    ydata = []
-    for i in range(bunch_count):
-        with open(f'fort.{i+1}024', 'r') as f:
-            xdata.append([line.split() for line in f.readlines()])
-        with open(f'fort.{i+1}025', 'r') as f:
-            ydata.append([line.split() for line in f.readlines()])
-    return xdata, ydata
-
-def load_bunch_count_data():
-    """Load bunch counts vs time from `fort.11`."""
-    with open('fort.11', 'r') as f:
-        data = [[int(value) if value.isdigit() else float(value)
-                for value in line.split()] for line in f.readlines()]
+        data = [[float(value) for value in line.split()]
+                for line in f.readlines()[header:]]
     return numpy.array(data)
 
-def load_phase_space_data(filenumber, bunch_count):
-    """Load phase space data per bunch as a list of datasets."""
+def load_experimental_results(filename='experimental_data.txt'):
+    """Load z, rms beam size and error values (m) from file as an array."""
+    return load_data_from_file(filename, header=1)
+
+def load_statistics_data(bunch_list):
+    """Load x and y data per bunch from statistics files as arrays."""
+    xdata = []
+    ydata = []
+    for bunch in bunch_list:
+        xdata.append(load_data_from_file(f'fort.{bunch}024'))
+        ydata.append(load_data_from_file(f'fort.{bunch}025'))
+    return numpy.array(xdata), numpy.array(ydata)
+
+def load_bunch_count_data():
+    """Load bunch counts vs time from `fort.11` as an array."""
+    data = load_data_from_file('fort.11')
+    return numpy.delete(data, 0, 1) # remove first column (time-step #)
+
+def load_phase_space_data(filenumber, bunch_list):
+    """Load phase space data per bunch as a list of arrays."""
     data = []
-    for i in range(bunch_count):
-        data.append(load_phase_space_data_single(f'fort.{filenumber+i}'))
+    for bunch in bunch_list:
+        this_data = load_data_from_file(f'fort.{filenumber+bunch-1}')
+        data.append(calculate_energies(this_data, bunch))
     return data
 
-def load_phase_space_data_single(filename):
-    """Load phase space data for a single bunch as a numpy array."""
-    with open(filename, 'r') as f:
-        return numpy.array([[float(item) for item in line.split()]
-                            for line in f.readlines()])
+def calculate_energies(data, bunch):
+    """Calculate the energies for per-bunch data and save as an extra column."""
+    gamma = numpy.sqrt(1 + numpy.square(data.T[5]))
+    mass = get_mass(get_input_filename(bunch))
+    W = (gamma - 1)*mass
+    new_data = numpy.zeros((data.shape[0], data.shape[1]+1))
+    new_data[:,:-1] = data
+    new_data[:,-1] = W
+    return new_data
 
-def combine_bunch_values(data_in):
+def combine_bunch_values(data, bunch_list):
     """Combine values of separate bunches into a single summary dataset."""
-    if len(data_in) == 1:
-        return data_in[0]
-    data = numpy.array(data_in, dtype=float)
-    npt = numpy.array(get_bunch_counts(len(data)))
+    if len(data) == 1:
+        return data[0]
+    npt = numpy.array(get_bunch_counts(bunch_list))
     # Decompose data
     t_data = data[:,:,0]
     z0_data = data[:,:,1]
@@ -124,123 +144,165 @@ def combine_bunch_values(data_in):
     pxrms = numpy.sqrt(sumsqpx/npt.sum() - numpy.square(px0))
     xpx = sumxpx/npt.sum() - (x0 * px0)
     epx = numpy.sqrt(xrms*xrms * pxrms*pxrms - xpx*xpx)
-    # Return combined data as a standard list
-    return numpy.array([t, z0, x0, xrms, px0, pxrms, -xpx, epx]).T.tolist()
+    # Return combined data as an array
+    return numpy.array([t, z0, x0, xrms, px0, pxrms, -xpx, epx]).T
 
-def combine_phase_space_data(data_in):
-    """Combine per-bunch phase space data into single numpy array."""
-    return numpy.concatenate(data_in)
+def combine_phase_space_data(data):
+    """Combine per-bunch phase space data into single array."""
+    return numpy.concatenate(data)
 
-def plot_beam_size(axes, data, title='Beam size',
+def get_xdata(data, xaxis):
+    """Return data for the given x-axis: time t (ns) or location z (mm)."""
+    if xaxis == 't':
+        return data.T[0]*1.0e9
+    elif xaxis == 'z':
+        return data.T[1]*1.0e3
+    else:
+        raise ValueError(f'Invalid xaxis specifier: {xaxis}')
+
+def get_xlabel(xaxis):
+    """Return label for the given x-axis: time t (ns) or location z (mm)."""
+    if xaxis == 't':
+        return 'Time (ns)'
+    elif xaxis == 'z':
+        return 'Average z-position (mm)'
+    else:
+        raise ValueError(f'Invalid xaxis specifier: {xaxis}')
+
+def plot_beam_size(axes, data, bunch_list, xaxis='z', title=None,
                    experiment_data=None, combined_data=None):
     """Create a plot of beam size per bunch."""
+    if xaxis == 't' and experiment_data is not None:
+        print('Cannot plot experimental results against time t.')
+        print('Continuing without experimental results.')
+        experiment_data = None
+    if not title:
+        title = 'Beam sizes for ' + bunch_text(bunch_list)
     axes.figure.suptitle(title)
-    axes.set_xlabel('z-location (mm)')
+    axes.set_xlabel(get_xlabel(xaxis))
     axes.set_ylabel('Beam size (mm)')
-    if not combined_data:
-        combined_data = combine_bunch_values(data)
-    if experiment_data:
+    if combined_data is None:
+        combined_data = combine_bunch_values(data, bunch_list)
+    if experiment_data is not None:
         plot_beam_size_experimental(axes, experiment_data)
-    for i in range(len(data)):
-        plot_beam_size_single(axes, data[i], '--', label=f'Bunch {i+1} rms')
-    plot_beam_size_single(axes, combined_data, 'r-', label=f'Combined rms')
+    for i in range(len(bunch_list)):
+        plot_beam_size_single(axes, data[i], xaxis, '--',
+                              label=f'Bunch {bunch_list[i]} rms')
+    if len(bunch_list) > 1:
+        plot_beam_size_single(axes, combined_data, xaxis, 'r-',
+                              label=f'Combined rms')
     axes.legend(fontsize='x-small')
 
 def plot_beam_size_experimental(axes, data):
     """Plot experimental data points with error bars"""
-    z = [float(row[0])*1.0e3 for row in data]
-    rms = [float(row[1])*1.0e3 for row in data]
-    error = [float(row[2])*1.0e3 for row in data]
+    z = data.T[0]*1.0e3
+    rms = data.T[1]*1.0e3
+    error = data.T[2]*1.0e3
     axes.errorbar(z, rms, yerr=error,
                   fmt='ko', markersize=2.0, elinewidth=0.5, capsize=1.0,
                   label='Experimental rms')
 
-def plot_beam_size_single(axes, data, fmt, label):
+def plot_beam_size_single(axes, data, xaxis, fmt, label):
     """Plot the rms beam size for the given data onto the given axes."""
-    z = [float(row[1])*1.0e3 for row in data]
-    rms = [float(row[3])*1.0e3 for row in data]
-    axes.plot(z, rms, fmt, linewidth=1, label=label)
+    x = get_xdata(data, xaxis)
+    rms = data.T[3]*1.0e3
+    axes.plot(x, rms, fmt, linewidth=1, label=label)
 
-def plot_emittance(axes, xdata, ydata, title='Emittance',
+def plot_emittance(axes, xdata, ydata, bunch_list, xaxis='t', title=None,
                    combined_xdata=None, combined_ydata=None):
     """Create a plot of average x and y emittance per bunch."""
+    if not title:
+        title = 'Emittance for ' + bunch_text(bunch_list)
     axes.figure.suptitle(title)
-    axes.set_xlabel('Time (ns)')
+    axes.set_xlabel(get_xlabel(xaxis))
     axes.set_ylabel('Normalised rms emittance (π mm mrad)')
-    for i in range(len(xdata)):
-        plot_emittance_single(axes, xdata[i], ydata[i],
-                              '--', label=f'Bunch {i+1}')
-    if not combined_xdata:
-        combined_xdata = combine_bunch_values(xdata)
-    if not combined_ydata:
-        combined_ydata = combine_bunch_values(ydata)
-    plot_emittance_single(axes, combined_xdata, combined_ydata,
-                          'r-', label=f'Combined')
+    for i in range(len(bunch_list)):
+        plot_emittance_single(axes, xdata[i], ydata[i], xaxis,
+                              '--', label=f'Bunch {bunch_list[i]}')
+    if len(bunch_list) > 1:
+        if combined_xdata is None:
+            combined_xdata = combine_bunch_values(xdata, bunch_list)
+        if combined_ydata is None:
+            combined_ydata = combine_bunch_values(ydata, bunch_list)
+        plot_emittance_single(axes, combined_xdata, combined_ydata, xaxis,
+                              'r-', label='Combined')
     axes.legend(fontsize='x-small')
 
-def plot_emittance_single(axes, xdata, ydata, fmt, label):
+def plot_emittance_single(axes, xdata, ydata, xaxis, fmt, label):
     """Plot the average x and y emittance onto the given axes."""
-    t = [float(row[0])*1.0e9 for row in xdata]
-    e = [(float(xdata[k][7]) + float(ydata[k][7])) / 2 * 1.0e6
-         for k in range(len(xdata))]
-    axes.plot(t, e, fmt, linewidth=1, label=label)
+    x = get_xdata(xdata, xaxis)
+    emittance = (xdata.T[7] + ydata.T[7])/2 * 1e6
+    axes.plot(x, emittance, fmt, linewidth=1, label=label)
 
-def plot_emittance_growth(axes, xdata, ydata, title='Emittance growth',
+def plot_emittance_growth(axes, xdata, ydata, bunch_list, xaxis='t', title=None,
                           combined_xdata=None, combined_ydata=None):
     """Create a plot of average x and y emittance growth per bunch."""
+    if not title:
+        title = 'Emittance growth for ' + bunch_text(bunch_list)
     axes.figure.suptitle(title)
-    axes.set_xlabel('Time (ns)')
+    axes.set_xlabel(get_xlabel(xaxis))
     axes.set_ylabel('Average emittance growth in x and y (relative)')
-    for i in range(len(xdata)):
-        plot_emittance_growth_single(axes, xdata[i], ydata[i],
-                                     '--', label=f'Bunch {i+1}')
-    if not combined_xdata:
-        combined_xdata = combine_bunch_values(xdata)
-    if not combined_ydata:
-        combined_ydata = combine_bunch_values(ydata)
-    plot_emittance_growth_single(axes, combined_xdata, combined_ydata,
-                                 'r-', label=f'Combined')
+    for i in range(len(bunch_list)):
+        plot_emittance_growth_single(axes, xdata[i], ydata[i], xaxis,
+                                     '--', label=f'Bunch {bunch_list[i]}')
+    if len(bunch_list) > 1:
+        if combined_xdata is None:
+            combined_xdata = combine_bunch_values(xdata, bunch_list)
+        if combined_ydata is None:
+            combined_ydata = combine_bunch_values(ydata, bunch_list)
+        plot_emittance_growth_single(axes, combined_xdata, combined_ydata, xaxis,
+                                     'r-', label=f'Combined')
     axes.legend(fontsize='x-small')
 
-def plot_emittance_growth_single(axes, xdata, ydata, fmt, label):
+def plot_emittance_growth_single(axes, xdata, ydata, xaxis, fmt, label):
     """Plot the average x and y emittance growth onto the given axes."""
-    t = [float(row[0])*1.0e9 for row in xdata]
-    e = [(float(xdata[k][7]) + float(ydata[k][7])) / 2 * 1.0e6
-         for k in range(len(xdata))]
-    initial_emittance = max(e[0], 1.0e-10)
-    growth = [emittance/initial_emittance - 1 for emittance in e]
-    axes.plot(t, growth, fmt, linewidth=1, label=label)
+    x = get_xdata(xdata, xaxis)
+    emittance = (xdata.T[7] + ydata.T[7])/2 * 1e6
+    initial_emittance = max(emittance[0], 1e-10)
+    growth = emittance/initial_emittance - 1
+    axes.plot(x, growth, fmt, linewidth=1, label=label)
 
-def plot_bunch_count(axes, data, xaxis, title='Bunch counts', max_bunch=None):
+def plot_bunch_count(axes, data, bunch_list, xaxis='t', title=None):
     """Plot the number of particles per bunch against 't' or 'z'."""
+    if not title:
+        title = 'Bunch counts for ' + bunch_text(bunch_list)
     axes.figure.suptitle(title)
-    if xaxis == 't':
-        x = data.T[1]
-        xlabel = 'Time (s)'
-    elif xaxis == 'z':
-        x = data.T[2]*1e3
-        xlabel = 'z-location (mm)'
-    else:
-        raise ValueError('Incorrect xaxis specifier: ' + str(xaxis))
-    if max_bunch:
-        counts = data.T[4:4+max_bunch]
-    else:
-        counts = data.T[4:]
-    labels = [f'Bunch {i+1}' for i in range(len(counts))]
-    axes.stackplot(x, counts, labels=labels)
+    x = get_xdata(data, xaxis)
+    xlabel = get_xlabel(xaxis)
+    counts = data.T[3:][[bunch - 1 for bunch in bunch_list]]
+    axes.stackplot(x, counts, labels=[f'Bunch {bunch}' for bunch in bunch_list])
     axes.set_xlim(left=0.0)
     axes.set_xlabel(xlabel)
     axes.set_ylabel('Number of macroparticles')
     axes.legend()
 
-def plot_phase_space(axes, x, y, xlabel, ylabel, grid_size=100):
+def plot_phase_spaces(axes, data, bunch_list, title=None, grid_size=100):
+    """Plot four phase spaces onto the given array of axes."""
+    if not title:
+        title = 'Phase space for ' + bunch_text(bunch_list)
+    axes[0,0].figure.suptitle(title)
+    x = data.T[0]
+    px = data.T[1]
+    y = data.T[2]
+    py = data.T[3]
+    z = data.T[4]
+    pz = data.T[5]
+    W = data.T[6]
+    xp = px/pz
+    yp = py/pz
+    plot_phase_space(axes[0,0], x*1e3, xp*1e3, 'x (mm)', 'x` (mrad)', grid_size)
+    plot_phase_space(axes[0,1], y*1e3, yp*1e3, 'y (mm)', 'y` (mrad)', grid_size)
+    plot_phase_space(axes[1,1], x*1e3, y*1e3, 'x (mm)', 'y (mm)', grid_size)
+    plot_phase_space(axes[1,0], z*1e3, W/1e6, 'z (mm)', 'Energy (MeV)', grid_size)
+
+def plot_phase_space(axes, xdata, ydata, xlabel, ylabel, grid_size=100):
     """Plot a single phase space onto the given axes."""
     if grid_size < 10:
         grid_size = 10
     axes.set_xlabel(xlabel, fontsize='x-small')
     axes.set_ylabel(ylabel, fontsize='x-small')
     axes.tick_params(labelsize='xx-small')
-    hist2d = plot_phase_space_hist2d(axes, x, y, grid_size)
+    hist2d = plot_phase_space_hist2d(axes, xdata, ydata, grid_size)
     add_plot_margins(axes, 0.1)
     plot_phase_space_hist1d(axes, hist2d, grid_size)
 
@@ -264,48 +326,18 @@ def plot_phase_space_hist1d(axes, hist2d, grid_size=100):
     axes.plot(xscale, xhist_scaled, color='green', linewidth=0.75)
     axes.plot(yhist_scaled, yscale, color='green', linewidth=0.75)
 
-def plot_phase_spaces(axes, data, title='Phase space', bunch_count=None,
-                      grid_size=100):
-    """Plot four phase spaces onto the given array of axes."""
-    axes[0,0].figure.suptitle(title)
-    x = data.T[0]
-    px = data.T[1]
-    y = data.T[2]
-    py = data.T[3]
-    z = data.T[4]
-    pz = data.T[5]
-    xp = px/pz
-    yp = py/pz
-    plot_phase_space(axes[0,0], x*1e3, xp*1e3, 'x (mm)', 'x` (mrad)', grid_size)
-    plot_phase_space(axes[0,1], y*1e3, yp*1e3, 'y (mm)', 'y` (mrad)', grid_size)
-    plot_phase_space(axes[1,1], x*1e3, y*1e3, 'x (mm)', 'y (mm)', grid_size)
-    if not bunch_count:
-        bunch_count = get_bunch_count()
-    if not is_mass_matched(bunch_count):
-        print(f'Masses for {bunch_count} bunches do not match, '
-              + 'so cannot plot combined energy distribution.' + '\n'
-              + 'Falling back to dimensionless momentum plot.')
-        plot_phase_space(
-            axes[1,0], z*1e3, pz, 'z (mm)', 'pz (dimensionless βγ)', grid_size)
-    else:
-        mass = get_mass(get_input_filename(1))
-        gamma = numpy.sqrt(1 + numpy.square(pz))
-        W = (gamma - 1)*mass
-        plot_phase_space(
-            axes[1,0], z*1e3, W/1e6, 'z (mm)', 'Energy (MeV)', grid_size)
-
-def plot_bunch_energies(axes, data, title='Energy spectra', bins=300):
+def plot_bunch_energies(axes, data, bunch_list, title=None, bins=100):
     """Plot per-bunch energy spectra histograms."""
+    if not title:
+        title = 'Energy spectra for ' + bunch_text(bunch_list)
     axes.figure.suptitle(title)
-    bunch_count = len(data)
-    gamma = [numpy.sqrt(1 + numpy.square(bunch.T[5])) for bunch in data]
-    mass = [get_mass(get_input_filename(i+1)) for i in range(bunch_count)]
-    W = [(gamma[i] - 1)*mass[i]/1e6 for i in range(bunch_count)]
-    axes.hist(numpy.concatenate(W), bins=bins, label='Total',
-              histtype='stepfilled', linewidth=1.0,
-              color='red', facecolor=(1,0,0,0.1), edgecolor=(1,0,0,1.0))
+    W = [bunch.T[6]/1e6 for bunch in data]
+    if len(bunch_list) > 1:
+        axes.hist(numpy.concatenate(W), bins=bins, label='Total',
+                  histtype='stepfilled', linewidth=1.0,
+                  color='red', facecolor=(1,0,0,0.1), edgecolor=(1,0,0,1.0))
     axes.hist(W, bins=bins, histtype='stepfilled', alpha=0.5,
-              label=[f'Bunch {i+1}' for i in range(bunch_count)])
+              label=[f'Bunch {bunch}' for bunch in bunch_list])
     axes.set_xlabel('Energy (MeV)')
     axes.set_ylabel('Number of macroparticles')
     handles, labels = axes.get_legend_handles_labels()
@@ -313,12 +345,12 @@ def plot_bunch_energies(axes, data, title='Energy spectra', bins=300):
     labels.reverse()
     axes.legend(handles, labels)
 
-def plot_total_energy(axes, data, title='Total energy spectrum', bins=300):
+def plot_total_energy(axes, combined_data, bunch_list, title=None, bins=100):
     """Plot total energy spectrum histogram on log scale."""
+    if not title:
+        title = 'Total energy spectrum for ' + bunch_text(bunch_list)
     axes.figure.suptitle(title)
-    gamma = numpy.sqrt(1 + numpy.square(data.T[5]))
-    mass = get_mass(get_input_filename(1))
-    W = (gamma - 1)*mass/1e6
+    W = combined_data.T[6]/1e6
     axes.hist(W, bins=bins, histtype='stepfilled', linewidth=1.0,
               color='red', facecolor=(1,0,0,0.1), edgecolor=(1,0,0,1.0))
     axes.set_xlabel('Energy (MeV)')
@@ -334,44 +366,46 @@ def add_plot_margins(axes, margin):
     axes.set_xlim(xmin - xmargin, xmax + xmargin)
     axes.set_ylim(ymin - ymargin, ymax + ymargin)
 
-def plot_all(bunch_count):
+def plot_all(bunch_list):
     """Run and save all plots consecutively."""
+    full_bunch_list = list(range(1, int(get_bunch_count()) + 1))
     print('Loading experimental data...')
     try:
-        experimental_results = load_experimental_results('experimental_data.txt')
+        experimental_results = load_experimental_results()
     except FileNotFoundError as err:
         print(f'Experimental results data file not found: {err}')
         print('Continuing without experimental data.')
         experimental_results = None
     print('Loading statistical data...')
     try:
-        xdata, ydata = load_statistics_data(bunch_count)
+        xdata, ydata = load_statistics_data(bunch_list)
     except FileNotFoundError as err:
         print(f'Statistical data file not found: {err}')
         print('Skipping statistical plots.')
     else:
-        combined_xdata = combine_bunch_values(xdata)
-        combined_ydata = combine_bunch_values(ydata)
+        combined_xdata = combine_bunch_values(xdata, bunch_list)
+        combined_ydata = combine_bunch_values(ydata, bunch_list)
         print('Plotting beam size...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_beam_size(axes, xdata, combined_data=combined_xdata)
+        plot_beam_size(axes, xdata, bunch_list, combined_data=combined_xdata)
         figure.savefig('beam-size')
         matplotlib.pyplot.close(figure)
-        if experimental_results:
+        if experimental_results is not None:
             figure, axes = matplotlib.pyplot.subplots(dpi=300)
-            plot_beam_size(axes, xdata, combined_data=combined_xdata,
+            plot_beam_size(axes, xdata, bunch_list,
+                           combined_data=combined_xdata,
                            experiment_data=experimental_results)
             figure.savefig('beam-size-vs-experiment')
             matplotlib.pyplot.close(figure)
         print('Plotting emittance...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_emittance(axes, xdata, ydata,
+        plot_emittance(axes, xdata, ydata, bunch_list,
                        combined_xdata=combined_xdata,
                        combined_ydata=combined_ydata)
         figure.savefig('emittance')
         matplotlib.pyplot.close(figure)
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_emittance_growth(axes, xdata, ydata,
+        plot_emittance_growth(axes, xdata, ydata, bunch_list,
                               combined_xdata=combined_xdata,
                               combined_ydata=combined_ydata)
         figure.savefig('emittance-growth')
@@ -385,55 +419,71 @@ def plot_all(bunch_count):
     else:
         print('Plotting bunch counts...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_bunch_count(axes, data, 't', max_bunch=bunch_count)
+        plot_bunch_count(axes, data, bunch_list)
         figure.savefig('bunch-count')
         matplotlib.pyplot.close(figure)
     print('Loading initial phase space data...')
     try:
-        data = load_phase_space_data(40, bunch_count)
+        full_data = load_phase_space_data(40, full_bunch_list)
     except FileNotFoundError as err:
         print(f'Phase space data file not found: {err}')
         print('Skipping initial phase space step.')
     else:
+        data = [full_data[bunch-1] for bunch in bunch_list]
         combined_data = combine_phase_space_data(data)
         print('Plotting initial phase space data...')
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-        plot_phase_spaces(axes, combined_data, title='Initial phase space',
-                          bunch_count=bunch_count, grid_size=300)
+        plot_phase_spaces(axes, combined_data, bunch_list, grid_size=300,
+            title=f'Initial phase space for {bunch_text(bunch_list)}')
         figure.savefig('phase-space-initial')
         matplotlib.pyplot.close(figure)
+        for bunch in full_bunch_list:
+            figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
+            plot_phase_spaces(axes, full_data[bunch-1], [bunch], grid_size=300,
+                title=f'Initial phase space for {bunch_text([bunch])}')
+            figure.savefig(f'phase-space-initial-bunch{bunch}')
+            matplotlib.pyplot.close(figure)
         print('Plotting initial energy spectra...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_bunch_energies(axes, data, title='Initial energy spectra', bins=300)
+        plot_bunch_energies(axes, data, bunch_list, bins=300,
+            title=f'Initial energy spectra for {bunch_text(bunch_list)}')
         figure.savefig('energies-initial')
         matplotlib.pyplot.close(figure)
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_total_energy(
-            axes, combined_data, title='Initial total energy spectrum', bins=300)
+        plot_total_energy(axes, combined_data, bunch_list, bins=300,
+            title=f'Initial total energy spectrum for {bunch_text(bunch_list)}')
         figure.savefig('energy-initial')
         matplotlib.pyplot.close(figure)
     print('Loading final phase space data...')
     try:
-        data = load_phase_space_data(50, bunch_count)
+        full_data = load_phase_space_data(50, full_bunch_list)
     except FileNotFoundError as err:
         print(f'Phase space data file not found: {err}')
         print('Skipping final phase space step.')
     else:
+        data = [full_data[bunch-1] for bunch in bunch_list]
         combined_data = combine_phase_space_data(data)
         print('Plotting final phase space data...')
         figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
-        plot_phase_spaces(axes, combined_data, title='Final phase space',
-                          bunch_count=bunch_count, grid_size=300)
+        plot_phase_spaces(axes, combined_data, bunch_list, grid_size=300,
+            title=f'Final phase space for {bunch_text(bunch_list)}')
         figure.savefig('phase-space-final')
         matplotlib.pyplot.close(figure)
+        for bunch in full_bunch_list:
+            figure, axes = matplotlib.pyplot.subplots(nrows=2, ncols=2, dpi=300)
+            plot_phase_spaces(axes, full_data[bunch-1], [bunch], grid_size=300,
+                title=f'Final phase space for {bunch_text([bunch])}')
+            figure.savefig(f'phase-space-final-bunch{bunch}')
+            matplotlib.pyplot.close(figure)
         print('Plotting final energy spectra...')
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_bunch_energies(axes, data, title='Final energy spectra', bins=300)
+        plot_bunch_energies(axes, data,  bunch_list, bins=300,
+            title=f'Final energy spectra for {bunch_text(bunch_list)}')
         figure.savefig('energies-final')
         matplotlib.pyplot.close(figure)
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
-        plot_total_energy(
-            axes, combined_data, title='Final total energy spectrum', bins=300)
+        plot_total_energy(axes, combined_data, bunch_list, bins=300,
+            title=f'Final total energy spectrum for {bunch_text(bunch_list)}')
         figure.savefig('energy-final')
         matplotlib.pyplot.close(figure)
     print('Getting list of BPMs...')
@@ -447,35 +497,54 @@ def plot_all(bunch_count):
         for location, filenumber in bpm_list:
             print(f'Loading BPM {filenumber} phase space data...')
             try:
-                data = load_phase_space_data(filenumber, bunch_count)
+                full_data = load_phase_space_data(filenumber, full_bunch_list)
             except FileNotFoundError as err:
                 print(f'BPM data file not found: {err}')
                 print('Skipping this BPM plot step.')
             else:
+                data = [full_data[bunch-1] for bunch in bunch_list]
                 combined_data = combine_phase_space_data(data)
                 print(f'Plotting BPM {filenumber} phase space data...')
                 figure, axes = matplotlib.pyplot.subplots(2, 2, dpi=300)
-                plot_phase_spaces(axes, combined_data,
-                                  title=f'Phase space at z = {location}',
-                                  bunch_count=bunch_count, grid_size=300)
+                plot_phase_spaces(axes, combined_data, bunch_list,
+                                  title=(f'Phase space at z = {location} '
+                                         f'for {bunch_text(bunch_list)}'),
+                                  grid_size=300)
                 figure.savefig(f'phase-space-{filenumber}')
                 matplotlib.pyplot.close(figure)
+                for bunch in full_bunch_list:
+                    figure, axes = matplotlib.pyplot.subplots(2, 2, dpi=300)
+                    plot_phase_spaces(axes, full_data[bunch-1], [bunch],
+                                      title=(f'Phase space at z = {location} '
+                                             f'for {bunch_text([bunch])}'),
+                                      grid_size=300)
+                    figure.savefig(f'phase-space-{filenumber}-bunch{bunch}')
+                    matplotlib.pyplot.close(figure)
                 print(f'Plotting BPM {filenumber} energy spectra...')
                 figure, axes = matplotlib.pyplot.subplots(dpi=300)
-                plot_bunch_energies(axes, data, bins=300,
-                                    title=f'BPM {filenumber} energy spectra')
+                plot_bunch_energies(axes, data, bunch_list, bins=300,
+                                    title=(f'BPM {filenumber} energy spectra '
+                                           f'for {bunch_text(bunch_list)}'))
                 figure.savefig(f'energies-{filenumber}')
                 matplotlib.pyplot.close(figure)
                 figure, axes = matplotlib.pyplot.subplots(dpi=300)
-                plot_total_energy(axes, combined_data, bins=300,
-                                  title=f'BPM {filenumber} total energy spectrum')
+                plot_total_energy(axes, combined_data, bunch_list, bins=300,
+                                  title=(f'BPM {filenumber} energy spectrum '
+                                         f'for {bunch_text(bunch_list)}'))
                 figure.savefig(f'energy-{filenumber}')
                 matplotlib.pyplot.close(figure)
 
 if __name__ == '__main__':
     matplotlib.use('agg') # Use the AGG renderer to produce PNG output
     if len(sys.argv) > 1:
-        bunch_count = int(sys.argv[1])
+        bunch_parameter = sys.argv[1]
+        if bunch_parameter.isdigit():
+            bunch_list = list(range(1, int(bunch_parameter) + 1))
+        else:
+            try:
+                bunch_list = [int(value) for value in sys.argv[1].split(',')]
+            except:
+                bunch_list = list(range(1, int(get_bunch_count()) + 1))
     else:
-        bunch_count = get_bunch_count()
-    plot_all(bunch_count)
+        bunch_list = list(range(1, int(get_bunch_count()) + 1))
+    plot_all(bunch_list)
