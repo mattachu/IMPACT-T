@@ -15,8 +15,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C904E6AD243E4CCF001C99C4"
-               BuildableName = "impact"
-               BlueprintName = "impact"
+               BuildableName = "Impact GUI"
+               BlueprintName = "Impact GUI"
                ReferencedContainer = "container:Impact-T.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -62,8 +62,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "C904E6AD243E4CCF001C99C4"
-            BuildableName = "impact"
-            BlueprintName = "impact"
+            BuildableName = "Impact GUI"
+            BlueprintName = "Impact GUI"
             ReferencedContainer = "container:Impact-T.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
