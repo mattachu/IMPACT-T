@@ -21,19 +21,33 @@
 /* End PBXGroup section */
 
 /* Begin PBXLegacyTarget section */
-		C904E6AD243E4CCF001C99C4 /* impact */ = {
+		C904E6AD243E4CCF001C99C4 /* Impact GUI */ = {
 			isa = PBXLegacyTarget;
 			buildArgumentsString = "$(ACTION)";
-			buildConfigurationList = C904E6AE243E4CCF001C99C4 /* Build configuration list for PBXLegacyTarget "impact" */;
+			buildConfigurationList = C904E6AE243E4CCF001C99C4 /* Build configuration list for PBXLegacyTarget "Impact GUI" */;
 			buildPhases = (
 			);
 			buildToolPath = /Users/matt/.pyenv/shims/python;
-			buildWorkingDirectory = /Users/matt/Code/Impact;
+			buildWorkingDirectory = /Users/matt/Code/Impact/GUI;
 			dependencies = (
 			);
-			name = impact;
+			name = "Impact GUI";
 			passBuildSettingsInEnvironment = 1;
 			productName = impact;
+		};
+		C986800924433F8D00D3E8DC /* Impact-T */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = C986800A24433F8D00D3E8DC /* Build configuration list for PBXLegacyTarget "Impact-T" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = /Users/matt/Code/Impact/src;
+			dependencies = (
+			);
+			name = "Impact-T";
+			passBuildSettingsInEnvironment = 1;
+			productName = "Impact-T";
 		};
 /* End PBXLegacyTarget section */
 
@@ -45,6 +59,9 @@
 				ORGANIZATIONNAME = "Lawrence Berkeley National Laboratory";
 				TargetAttributes = {
 					C904E6AD243E4CCF001C99C4 = {
+						CreatedOnToolsVersion = 11.4;
+					};
+					C986800924433F8D00D3E8DC = {
 						CreatedOnToolsVersion = 11.4;
 					};
 				};
@@ -61,7 +78,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				C904E6AD243E4CCF001C99C4 /* impact */,
+				C986800924433F8D00D3E8DC /* Impact-T */,
+				C904E6AD243E4CCF001C99C4 /* Impact GUI */,
 			);
 		};
 /* End PBXProject section */
@@ -105,6 +123,73 @@
 			name = Debug;
 		};
 		C904E6B0243E4CCF001C99C4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		C986800B24433F8D00D3E8DC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUGGING_SYMBOLS = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		C986800C24433F8D00D3E8DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -201,11 +286,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		C904E6AE243E4CCF001C99C4 /* Build configuration list for PBXLegacyTarget "impact" */ = {
+		C904E6AE243E4CCF001C99C4 /* Build configuration list for PBXLegacyTarget "Impact GUI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C904E6AF243E4CCF001C99C4 /* Debug */,
 				C904E6B0243E4CCF001C99C4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C986800A24433F8D00D3E8DC /* Build configuration list for PBXLegacyTarget "Impact-T" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C986800B24433F8D00D3E8DC /* Debug */,
+				C986800C24433F8D00D3E8DC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
