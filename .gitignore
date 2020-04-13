@@ -2,6 +2,7 @@
 .DS_Store
 .vs/
 __pycache__/
+.python-version
 *.o
 *.mod
 ImpactTexe
