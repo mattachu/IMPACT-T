@@ -1,0 +1,10 @@
+{
+    "python.pythonPath": "~/.pyenv/versions/impactgui/bin/python",
+    "files.exclude": {
+        "**/.DS_Store": true,
+        "**/__pycache__/": true,
+        "**/*.o": true,
+        "**/*.mod": true,
+        "**/ImpactTexe": true
+    }
+}
