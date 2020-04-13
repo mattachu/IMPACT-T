@@ -537,6 +537,8 @@ class PlotBaseFrame(tk.Frame):
             return [tcol, 'time (s)']
         else:
             return [zcol, 'z direction (m)']
+    def plot(self):
+        raise NotImplementedError()
 
 class PlotFrame(PlotBaseFrame):
     def __init__(self, parent, PlotFileName, yl, labelY, per_bunch=True):
