@@ -1,9 +1,6 @@
 
 .DS_Store
-.vs/
-.vscode/
 __pycache__/
-.python-version
 *.o
 *.mod
 ImpactTexe
