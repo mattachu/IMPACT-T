@@ -1,39 +1,34 @@
 #*****************************************************
-#  General Makefile
+#  IMPACT-T Makefile
 #
 #*****************************************************
 
 #**************************************************************************
-# Macros defining the Fortran, C/C++ compiler and linker.
+# Macros defining the Fortran compiler and linker.
 
-CC = ifort
-LINK = ifort
+FC = mpifort
+LINK = mpifort
 FFLAGS = -O3
 
 #**************************************************************************
 # List of .o files that EXENAME depends on.  Edit as appropriate for MP.
 
-OBJS = \
-	mpistub.o DataStruct/NumConst.o DataStruct/PhysConst.o DataStruct/Pgrid.o \
-	DataStruct/Data.o \
-	Func/Timer.o Func/Transpose.o Func/Fldmger.o Func/Ptclmger.o  \
-	Func/FFT.o \
-        Appl/BPM.o Appl/CCL.o Appl/CCDTL.o Appl/DTL.o Appl/SC.o Appl/Multipole.o \
-	Appl/DriftTube.o Appl/Quadrupole.o Appl/ConstFoc.o Appl/SolRF.o \
-	Appl/Sol.o Appl/Dipole.o Appl/EMfld.o Appl/EMfldCart.o Appl/EMfldCyl.o Appl/EMfldAna.o \
-	Appl/BeamLineElem.o \
-	Appl/CompDom.o Appl/BeamBunch.o Appl/Depositor.o Appl/Ranger.o Appl/Field.o Appl/Distribution.o \
-	Contrl/Input.o Contrl/Output.o Contrl/AccSimulator.o Contrl/main.o
-
-OBJS2 = \
-	mpistub.o NumConst.o PhysConst.o Pgrid.o Data.o \
-        Timer.o Transpose.o Fldmger.o Ptclmger.o FFT.o \
+OBJECTS = \
+	NumConst.o PhysConst.o Pgrid.o Data.o \
+	Timer.o Transpose.o Fldmger.o Ptclmger.o FFT.o \
 	BPM.o CCL.o CCDTL.o DTL.o SC.o DriftTube.o Quadrupole.o Multipole.o ConstFoc.o \
 	SolRF.o Sol.o Dipole.o EMfld.o EMfldCart.o EMfldCyl.o EMfldAna.o \
+	RFQ.o Fieldmap.o \
 	BeamLineElem.o CompDom.o BeamBunch.o Depositor.o Ranger.o Field.o Distribution.o \
 	Input.o Output.o AccSimulator.o main.o	
+
 #**************************************************************************
-# Change this line if you don't like 'a.out'.
+# Search path directives
+
+vpath %.f90 Appl Contrl DataStruct Func
+
+#**************************************************************************
+# Define name of output executable
 
 EXENAME = ImpactTexe
 
@@ -48,29 +43,69 @@ EXENAME = ImpactTexe
 #  $@ = full target name
 #  $< = dependent name
 
-.f90.o:
-	$(CC) -c $(FFLAGS) $<
+%.o: %.f90
+	$(FC) -c $(FFLAGS) $< -o $@
 
 #**************************************************************************
-# Rules for building EXENAME from OBJS and OBJS from your source.
+# Rules for building EXENAME from OBJECTS
 
-$(EXENAME):  $(OBJS) 
-	$(LINK) -o $(EXENAME) $(OBJS2) 
+$(EXENAME):  $(OBJECTS)
+	$(LINK) -o $(EXENAME) $(OBJECTS)
 
 #************************************************************************
-# if you wish to compile a certain object with different flags
-# or in some special way, then specify the target & dependency explicitly
-# the following line say Timer.o is depended on Timer.f90
-#Timer.o: Timer.f90
-#	$(CC) -c -O3 Timer.f90
+# Copy module code to subfolders for debugging
 
-	cp  AccSimulator.o main.o Input.o Output.o Contrl
-	cp  BPM.o CCL.o CCDTL.o DTL.o SC.o DriftTube.o Quadrupole.o \
-	    ConstFoc.o BeamLineElem.o BeamBunch.o Field.o CompDom.o \
-	    Distribution.o SolRF.o Sol.o Dipole.o Multipole.o EMfld.o \
-	    EMfldCart.o EMfldCyl.o EMfldAna.o Depositor.o Ranger.o Appl
-	cp  Timer.o Transpose.o Fldmger.o Ptclmger.o FFT.o Func	
-	cp  NumConst.o PhysConst.o Data.o Pgrid.o DataStruct 
+	cp  *.mod Contrl
+	cp  *.mod Appl
+	cp  *.mod Func
+	cp  *.mod DataStruct
+
+#**************************************************************************
+# Dependencies of specific OBJECTS
+
+Data.o : NumConst.o
+NumConst.o :
+Pgrid.o :
+PhysConst.o :
+Bessel.o :
+FFT.o : Timer.o Transpose.o
+Fldmger.o : Timer.o Pgrid.o
+Ptclmger.o : Timer.o Pgrid.o
+Timer.o :
+Transpose.o : Timer.o
+BeamBunch.o : Timer.o PhysConst.o BeamLineElem.o CompDom.o Pgrid.o \
+							Fldmger.o Data.o
+BeamLineElem.o : Quadrupole.o Multipole.o DriftTube.o CCL.o CCDTL.o DTL.o \
+								 SC.o BPM.o ConstFoc.o SolRF.o Dipole.o EMfld.o EMfldAna.o \
+								 EMfldCyl.o EMfldCart.o RFQ.o Fieldmap.o
+BPM.o : PhysConst.o Data.o
+CompDom.o : Timer.o Pgrid.o
+ConstFoc.o : Timer.o Pgrid.o
+Depositor.o : Pgrid.o CompDom.o BeamBunch.o PhysConst.o
+Dipole.o : Timer.o Pgrid.o
+Distribution.o : Pgrid.o Timer.o NumConst.o PhysConst.o BeamBunch.o CompDom.o
+DriftTube.o : PhysConst.o Data.o
+DTL.o : PhysConst.o Data.o
+EMfld.o : PhysConst.o Data.o
+EMfldAna.o : PhysConst.o Data.o
+EMfldCyl.o : PhysConst.o Data.o
+EMfldCart.o : PhysConst.o Data.o
+Field.o : Timer.o CompDom.o Pgrid.o FFT.o PhysConst.o Transpose.o Fldmger.o
+Fieldmap.o : PhysConst.o Data.o
+Multipole.o : PhysConst.o Data.o
+Quadrupole.o : PhysConst.o Data.o
+Ranger.o : Pgrid.o
+RFQ.o : PhysConst.o Data.o
+SC.o : PhysConst.o Data.o
+Sol.o : PhysConst.o Data.o
+SolRF.o : PhysConst.o Data.o
+AccSimulator.o : Pgrid.o CompDom.o Field.o BeamLineElem.o Ptclmger.o \
+								 BeamBunch.o Timer.o Input.o Output.o Data.o PhysConst.o \
+								 NumConst.o Distribution.o Ranger.o Depositor.o
+Input.o :
+Output.o : Timer.o BeamBunch.o PhysConst.o
+main.o : AccSimulator.o
+
 #***********************************************************************
 clean:
-	-rm *.o $(EXENAME) *.mod */*.o
+	-rm $(EXENAME) *.o *.mod */*.o */*.mod

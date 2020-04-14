@@ -478,7 +478,7 @@
         !--------------------------------------------------------------------------------------
         subroutine update3Otnew_FieldQuant(this,source,fldgeom,grid,nxlc,&
           nylc,nzlc,nprocrow,nproccol,nylcr,nzlcr,gammaz,tmppot,flagImage,&
-          zshift)
+          zshift,dL1,dL2)
         implicit none
         include 'mpif.h'
         integer, intent(in) :: nxlc,nylc,nzlc,&
@@ -503,7 +503,9 @@
         integer, dimension(3) :: glmshnm
         integer :: jadd,kadd,ierr
         double precision :: t0
+        double precision :: dL1,dL2,dL1lor,dL2lor
 
+        !dL1=dL1*1.0
         call getpost_Pgrid2d(grid,myid,myidy,myidz)
         call getcomm_Pgrid2d(grid,comm2d,commcol,commrow)
 
@@ -575,12 +577,14 @@
         hy = msize(2)*Scxlt
         !gammaz is due to the relativistic effect
         hz = msize(3)*gammaz*Scxlt
+        dL1lor = dL1*gammaz
+        dL2lor = dL2*gammaz
 
         ! Open boundary conditions!
         call openBC3Dnew(innx,inny,innz,rho,hx,hy,hz, &
         nxpylc2,nypzlc2,myidz,myidy,nprocrow,nproccol,commrow,commcol,&
         comm2d,pztable,pytable,ypzstable,xpystable,&
-        inxglb,inyglb,inzglb,tmprho,flagImage,zshift)
+        inxglb,inyglb,inzglb,tmprho,flagImage,zshift,dL1lor,dL2lor)
 
         do k = 1, innz
           do j = 1, inny
@@ -610,7 +614,7 @@
         subroutine openBC3Dnew(innx,inny,innz,rho,hx,hy,hz,&
            nxpylc2,nypzlc2,myidz,myidy,npz,npy,commrow,commcol,comm2d, &
            pztable,pytable,ypzstable,xpystable,inxglb,&
-           inyglb,inzglb,rhoImg,flagImage,zshift)
+           inyglb,inzglb,rhoImg,flagImage,zshift,dL1,dL2)
         implicit none
         include 'mpif.h'
         integer, intent(in) :: innx,inny,innz,inxglb,inyglb,inzglb
@@ -627,6 +631,7 @@
         double complex, allocatable, dimension(:,:,:) :: rho2out,rho3out
         double complex, allocatable, dimension(:,:,:) :: grn
         integer :: ginny,ginnz,ierr
+        double precision :: dL1,dL2
 
         n1 = 2*inxglb
         n2 = 2*inyglb
@@ -647,7 +652,7 @@
         rho2out)
 
         !c compute FFT of the Green function on the grid:
-        ! here the +1 is from the unsymmetry of green function
+        ! here the +1 is from the asymmetry of green function
         ! on double-sized grid.
         if(myidz.eq.(npz-1)) then
            ginnz = innz + 1
@@ -659,15 +664,16 @@
         else
            ginny = inny
         endif
+
         allocate(grn(n3,nylc22,nzlc22))
         !call greenf1t(inxglb,inyglb,inzglb,ginnz,ginny,nylc22,nzlc22, &
         !       hx,hy,hz,myidz,npz,commrow,myidy,npy,commcol,comm2d,&
         !          ypzstable,pztable,xpystable,pytable,grn)
         call greenf1tIntnew2(inxglb,inyglb,inzglb,ginnz,ginny,nylc22,nzlc22, &
                hx,hy,hz,myidz,npz,commrow,myidy,npy,commcol,comm2d,&
-                  ypzstable,pztable,xpystable,pytable,grn)
+                  ypzstable,pztable,xpystable,pytable,grn,dL1,dL2)
 
-        ! multiply transformed charge density and transformed Green 
+        ! multiply transformed charge density and transformed Green
         ! function:
         allocate(rho3out(n3,nylc22,nzlc22))
         do k = 1, nzlc22
@@ -743,7 +749,7 @@
         !--------------------------------------------------------------------------------------
         subroutine greenf1tIntnew2(nx,ny,nz,nsizez,nsizey,nsizexy,nsizeyz,&
                   hx,hy,hz,myidx,npx,commrow,myidy,npy,commcol,comm2d,&
-                   xstable,xrtable,ystable,yrtable,grnout)
+                   xstable,xrtable,ystable,yrtable,grnout,dL1,dL2)
         implicit none
         include 'mpif.h'
         integer, intent(in) :: nx,ny,nz,nsizez,nsizey,nsizexy,nsizeyz
@@ -774,7 +780,7 @@
         double precision, dimension(2) :: xx,yy,zz
         double precision, dimension(3) :: vv
         integer :: n,i0,j0,k0
-        double precision :: recfourpi
+        double precision :: recfourpi,dL1,dL2
 
         recfourpi = 1.0d0/(8.0d0*asin(1.0d0))
 
@@ -796,6 +802,38 @@
         do i = 0, myidy-1
           nblocky = nblocky + gyrtable(i)
         enddo
+
+        if(dL1.gt.0.0d0 .and. dL2.gt.0.0d0) then
+
+        do k = 1, nsizez
+          do j = 1, nsizey
+            do i = 1, nx+1
+              jj = j + nblocky
+              kk = k + nblockx
+                kkk = kk - 1
+                jjj = jj - 1
+                iii = i - 1
+
+                if((kkk.eq.0).and.(jjj.eq.0).and.(iii.eq.0)) then
+                  grn(i,j,k)= &
+                    recfourpi*(1.0d0/hx+1.0d0/hy+1.d0/hz)/3 + &
+                    recfourpi/sqrt((hx*iii)**2+(hy*jjj)**2+(hz*kkk-2*dL1)**2)+&
+                    recfourpi/sqrt((hx*iii)**2+(hy*jjj)**2+(hz*kkk+2*dL2)**2)!+ &
+                    !recfourpi/sqrt((hx*iii)**2+(hy*jjj)**2+(hz*kkk-2*dL1)**2)+&
+                    !recfourpi/sqrt((hx*iii)**2+(hy*jjj)**2+(hz*kkk+2*dL2)**2)
+                else
+                  grn(i,j,k)=&
+                    recfourpi/sqrt((hx*iii)**2+(hy*jjj)**2+(hz*kkk)**2)+&
+                    recfourpi/sqrt((hx*iii)**2+(hy*jjj)**2+(hz*kkk-2*dL1)**2)+&
+                    recfourpi/sqrt((hx*iii)**2+(hy*jjj)**2+(hz*kkk+2*dL2)**2)!+&
+                    !recfourpi/sqrt((hx*iii)**2+(hy*jjj)**2+(hz*kkk-2*dL1)**2)+&
+                    !recfourpi/sqrt((hx*iii)**2+(hy*jjj)**2+(hz*kkk+2*dL2)**2)
+                endif
+              enddo
+            enddo
+          enddo
+
+        else
 
         do k0 = 1, nsizez+1
           do j0 = 1, nsizey+1
@@ -901,6 +939,8 @@
           else
             grn(1,1,1) = 1.0
           endif
+        endif
+
         endif
 
         scalex = 1.0d0

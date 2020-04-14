@@ -16,7 +16,7 @@
 !           "ImpactT.in".
 !----------------------------------------------------------------
       module Inputclass
-        use mpistub
+        !use mpistub
         interface in_Input
           module procedure in1_Input, in2_Input, in3_Input
         end interface
@@ -253,7 +253,7 @@
         obtype,value0,value1,value2,value3,value4,value5,value6,&
         value7,value8,&
         value9,value10,value11,value12,value13,value14,value15,value16,&
-        value17,value18,value19,value20,value21,value22,value23,value24)
+        value17,value18,value19,value20,value21,value22,value23,value24,value25)
         implicit none
         include 'mpif.h'
 !        integer,intent(in) :: onblem,operd
@@ -266,7 +266,7 @@
         value1,value2,&
         value3,value4,value5,value6,value7,value8,value9,value10,value11,&
         value12,value13,value14,value15,value16,value17,value18,value19,&
-        value20,value21,value22,value23,value24
+        value20,value21,value22,value23,value24,value25
         integer :: i,irf
         integer :: myrank,ierr
         character*1 comst
@@ -298,6 +298,7 @@
         value22 = 0.0
         value23 = 0.0
         value24 = 0.0
+        value25 = 0.0
 
         if(myrank.eq.0) then
 
@@ -312,7 +313,7 @@
               value6(i),&
               value7(i),value8(i),value9(i),value10(i),value11(i),value12(i),&
               value13(i),value14(i),value15(i),value16(i),value17(i),value18(i),&
-              value19(i),value20(i),value21(i),value22(i),value23(i),value24(i)
+              value19(i),value20(i),value21(i),value22(i),value23(i),value24(i),value25(i)
               if(obtype(i).eq.-99)then
                 goto 789
               endif

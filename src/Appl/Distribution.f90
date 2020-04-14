@@ -39,7 +39,8 @@
         !integer*8, allocatable, dimension(:) :: seedarray
         integer, allocatable, dimension(:) :: seedarray
         integer :: totnp,npx,npy,meanpts20
-        real rancheck
+        real :: rancheck
+        character(len=2) :: FieldID
 
         call getpost_Pgrid2d(grid,myid,myidy,myidx)
         call getsize_Pgrid2d(grid,totnp,npy,npx)
@@ -810,7 +811,8 @@
         double precision, dimension(nparam) :: distparam
         integer :: i,j,jlow,jhigh,avgpts,myid,nproc,ierr,nptot,nleft
         double precision, dimension(6) :: tmptcl
-        double precision :: sum1,sum2
+        double precision :: sum1,sum2, sum3
+        character(len=2) :: FieldID
         character*12 name1
         character*13 name2
         character*14 name3
@@ -822,6 +824,9 @@
         name1 = 'partclx.data'
         name2 = 'partclxx.data'
         name3 = 'partclxxx.data'
+
+          write(FieldID,'(I1)') ib
+          print *,"Beam bunch ", FieldID
 
          if(ib.eq.1) then
             open(unit=12,file='partcl.data',status='old')
@@ -862,6 +867,7 @@
             jlow = myid*avgpts + 1 + nleft
             jhigh = (myid+1)*avgpts + nleft
           endif
+          this%Nptlocal = avgpts
           allocate(this%Pts1(6,avgpts))
           this%Pts1 = 0.0
           !jlow = myid*avgpts + 1
@@ -871,13 +877,14 @@
             read(12,*)tmptcl(1:6)
             sum1 = sum1 + tmptcl(1)
             sum2 = sum2 + tmptcl(3)
+            sum3 = sum3 + tmptcl(5)
             if( (j.ge.jlow).and.(j.le.jhigh) ) then
               i = j - jlow + 1
               this%Pts1(1:6,i) = tmptcl(1:6)
             endif
 !            if(myid.eq.0) print*,i,sum1,sum2
           enddo
-          print*,"sumx1,sumy1: ",sum1/nptot,sum2/nptot
+          print*,"sumx1,sumy1: ",sum1/nptot,sum2/nptot,sum3/nptot
  
           close(12)
  
