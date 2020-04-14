@@ -125,7 +125,6 @@ def combine_bunch_values(data, bunch_list):
     px0_data = data[:,:,4]
     pxrms_data = data[:,:,5]
     xpx_data = -data[:,:,6]
-    epx_data = data[:,:,7]
     # All t data should be the same
     t = t_data[0]
     if not all([row == t.tolist() for row in t_data.tolist()]):
@@ -314,7 +313,7 @@ def plot_phase_space_hist2d(axes, x, y, grid_size=100):
 
 def plot_phase_space_hist1d(axes, hist2d, grid_size=100):
     """Plot 1d histograms on the axes of the phase space plot."""
-    hist, xedges, yedges, img = hist2d
+    hist, xedges, yedges, _ = hist2d
     xmin, xmax, ymin, ymax = xedges[0], xedges[-1], yedges[0], yedges[-1]
     x0, x1, y0, y1 = axes.axis()
     xscale = numpy.array(range(grid_size)) / grid_size * (xmax - xmin) + xmin
