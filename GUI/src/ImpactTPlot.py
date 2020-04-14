@@ -965,6 +965,7 @@ class PlotMBBeamSizeFrame(PlotMultiBunchBaseFrame):
             experimental_results = None
         bunch_list = self.get_bunch_list()
         xdata, ydata = MultiBunchPlot.load_statistics_data(bunch_list)
+        # TODO: Can we calculate rdata from xdata and ydata?
         self.subfig.cla()
         MultiBunchPlot.plot_beam_size(self.subfig.axes, xdata, bunch_list,
                                       xaxis=self.get_selected_xaxis(),
