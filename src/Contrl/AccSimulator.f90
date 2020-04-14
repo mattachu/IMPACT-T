@@ -1325,8 +1325,8 @@
         do i = iend+1, ntstep
 
           if(myid.eq.0) then
-            print*,"i,t,<z>: ",i,t,distance
-            write(11,*)i,t,distance,ibunch
+            print*,"i: ",i,t,distance,ibunch,Ebunch(1:Nbunch)%Npt
+            write(11,*)i,t,distance,ibunch,Ebunch(1:Nbunch)%Npt
           endif
 
           post(3)=distance
