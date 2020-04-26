@@ -559,13 +559,13 @@ def plot_all(bunch_list, z_offset=None):
                 print(f'Plotting BPM {filenumber} energy spectra...')
                 figure, axes = matplotlib.pyplot.subplots(dpi=300)
                 plot_bunch_energies(axes, data, bunch_list, bins=300,
-                                    title=(f'BPM {filenumber} energy spectra '
+                                    title=(f'Energy spectra at z = {location} '
                                            f'for {bunch_text(bunch_list)}'))
                 figure.savefig(f'energies-{filenumber}')
                 matplotlib.pyplot.close(figure)
                 figure, axes = matplotlib.pyplot.subplots(dpi=300)
                 plot_total_energy(axes, combined_data, bunch_list, bins=300,
-                                  title=(f'BPM {filenumber} energy spectrum '
+                                  title=(f'Energy spectrum at z = {location} '
                                          f'for {bunch_text(bunch_list)}'))
                 figure.savefig(f'energy-{filenumber}')
                 matplotlib.pyplot.close(figure)
