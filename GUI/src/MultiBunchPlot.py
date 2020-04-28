@@ -26,12 +26,23 @@ def get_lattice():
 
 def get_bpms(lattice, z_offset=None):
     """Get the location and file number of all BPMs as a list of tuples."""
+    return [(get_position_as_text(float(elem[4]), z_offset), int(elem[2]))
+            for elem in lattice if elem[3]=='-2']
+
+def get_position_as_text(position, z_offset=None):
+    """Return a text description of a numerical position."""
     if z_offset:
-        return [(str((float(elem[4]) - z_offset)*1000) + ' mm', int(elem[2]))
-                for elem in lattice if elem[3]=='-2']
+        position = position - z_offset
+    if position > 1:
+        unit = 'm'
     else:
-        return [(str(float(elem[4])*1000) + ' mm', int(elem[2]))
-                for elem in lattice if elem[3]=='-2']
+        position = position*1000
+        unit = 'mm'
+    if position >= 1000:
+        position = round(position)
+    else:
+        position = float(f'{position:.4g}')
+    return f'{position} {unit}'
 
 def get_bunch_counts(bunch_list):
     """Get the particle counts for each bunch as an array."""
