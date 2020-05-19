@@ -30,7 +30,7 @@
             "options": {
                 "cwd": "${workspaceRoot}/src"
             },
-            "args": ["FFLAGS='-g -O0'"],
+            "args": ["FFLAGS=\"-g -O0\""],
             "group": {
                 "kind": "build",
                 "isDefault": true
