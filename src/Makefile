@@ -31,7 +31,7 @@ vpath %.f90 Appl Contrl DataStruct Func
 # Define name and location of output executable
 
 EXENAME = ImpactTexe
-INSTALLDIR = ~/bin
+INSTALLDIR = ~/.local/bin
 
 #************************************************************************
 # disable predefined suffixes and define your own set of allowed suffixes
