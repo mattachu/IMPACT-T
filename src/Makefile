@@ -108,6 +108,9 @@ Output.o : Timer.o BeamBunch.o PhysConst.o
 main.o : AccSimulator.o
 
 #***********************************************************************
+# Recipes
+
+.PHONY: install clean
 install: $(EXENAME)
 	cp $(EXENAME) $(INSTALLDIR)/
 clean:
