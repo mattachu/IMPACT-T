@@ -73,6 +73,9 @@ $(EXENAME):  $(OBJS)
 	cp  Timer.o Transpose.o Fldmger.o Ptclmger.o FFT.o Func	
 	cp  NumConst.o PhysConst.o Data.o Pgrid.o DataStruct 
 #***********************************************************************
+# Recipes
+
+.PHONY: install clean
 install: $(EXENAME)
 	cp $(EXENAME) $(INSTALLDIR)/
 clean:
