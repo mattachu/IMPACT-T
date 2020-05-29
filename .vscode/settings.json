@@ -6,5 +6,8 @@
         "**/*.o": true,
         "**/*.mod": true,
         "**/ImpactTexe": true
-    }
+    },
+    "fortran.includePaths": [
+        "/usr/local/include"
+    ]
 }
