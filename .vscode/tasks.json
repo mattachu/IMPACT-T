@@ -20,7 +20,10 @@
             "options": {
                 "cwd": "${workspaceRoot}/src"
             },
-            "group": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "problemMatcher": []
         },
         {
@@ -31,10 +34,7 @@
                 "cwd": "${workspaceRoot}/src"
             },
             "args": ["FFLAGS=\"-g -O0\""],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "group": "build",
             "problemMatcher": []
         },
         {
