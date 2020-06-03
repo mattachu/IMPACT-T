@@ -3100,6 +3100,28 @@
                           records='momentum', &
                           component='z')
             call pwpart(file, Ebunch(ib)%Pts1(6,:), Ebunch(ib)%Nptlocal, ierr)
+            ! Write particle gamma
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitSI=1.0d0, &
+                          unitDimension=(/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='gamma')
+            call pwpart(file, sqrt(1.0d0 + Ebunch(ib)%Pts1(2,:)**2 &
+                                         + Ebunch(ib)%Pts1(4,:)**2 &
+                                         + Ebunch(ib)%Pts1(6,:)**2), &
+                        Ebunch(ib)%Nptlocal, ierr)
+            ! Write particle energy
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitSI=scale_energy, &
+                          unitDimension=(/2.d0,1.d0,-2.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='energy')
+            call pwpart(file, sqrt(1.0d0 + Ebunch(ib)%Pts1(2,:)**2 &
+                                         + Ebunch(ib)%Pts1(4,:)**2 &
+                                         + Ebunch(ib)%Pts1(6,:)**2) - 1.0d0, &
+                        Ebunch(ib)%Nptlocal, ierr)
             ! Write position offsets
             call file%new(iter=i, &
                           time=real(t), &
