@@ -1322,6 +1322,9 @@
         enddo
         !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if(FlagRFQ.eq.1) then
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'RFQ output (Nblem):', Nblem
+            end if
             do ib=1, Nbunch
               call plt_Output(110+ib-1,Nblem,Ebunch(ib),Bfreq,ib)
             end do
@@ -2381,6 +2384,9 @@
             if(FlagRFQ.eq.1) then
                 if ((distance.le.zBlnelem(2,icell)) .and. &
                    ((distance+dzz).ge.zBlnelem(2,icell)))then
+                  if(FlagReportOutput == 1 .and. myid == 0) then
+                    print *, 'RFQ output (icell, sgcenter):', icell, sgcenter(:,ib)
+                  end if
                   do ib=1, Nbunch
                     call plt_Output(110+ib-1,Ebunch(ib), icell, sgcenter(:,ib), ib, np0(ib))
                   end do
@@ -2799,7 +2805,12 @@
         do ib = 1, Nbunch
           i = 50+ib-1 
           call phase_Output(i,Ebunch(ib),1)
-          if(FlagRFQ.eq.1) call dst_Output(i+10,Ebunch(ib),Bfreq,ib) ! by LHP
+          if(FlagRFQ.eq.1) then
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'RFQ final distribution output: ', ib
+            end if
+            call dst_Output(i+10,Ebunch(ib),Bfreq,ib) ! by LHP
+          end if
           qchg = Ebunch(ib)%Current/Scfreq
           call sliceprocdep_Output(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
                    Nz,qchg,Ebunch(ib)%Mass,70+ib-1)
