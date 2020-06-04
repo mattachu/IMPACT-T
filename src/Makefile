@@ -11,6 +11,23 @@ LINK = mpifort
 FFLAGS = -O3
 
 #**************************************************************************
+# Libraries
+
+## HDF5
+
+HDF_INCLUDE_PATH = \
+	-I/usr/local/include -I/usr/local/lib \
+	-lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5
+
+HDF_LIBPATH = \
+	-L/usr/local/lib \
+	-lhdf5 -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran
+
+## Combined library path for link step
+
+LIBS = $(HDF_LIBPATH)
+
+#**************************************************************************
 # List of .o files that EXENAME depends on.  Edit as appropriate for MP.
 
 OBJECTS = \
@@ -20,6 +37,7 @@ OBJECTS = \
 	SolRF.o Sol.o Dipole.o EMfld.o EMfldCart.o EMfldCyl.o EMfldAna.o \
 	RFQ.o Fieldmap.o \
 	BeamLineElem.o CompDom.o BeamBunch.o Depositor.o Ranger.o Field.o Distribution.o \
+	HDF5.o \
 	Input.o Output.o AccSimulator.o main.o	
 
 #**************************************************************************
@@ -50,7 +68,7 @@ EXENAME = ImpactTexe
 # Rules for building EXENAME from OBJECTS
 
 $(EXENAME):  $(OBJECTS)
-	$(LINK) -o $(EXENAME) $(OBJECTS)
+	$(LINK) -o $(EXENAME) $(OBJECTS) $(LIBS)
 
 #************************************************************************
 # Copy module code to subfolders for debugging
@@ -103,8 +121,13 @@ AccSimulator.o : Pgrid.o CompDom.o Field.o BeamLineElem.o Ptclmger.o \
 								 BeamBunch.o Timer.o Input.o Output.o Data.o PhysConst.o \
 								 NumConst.o Distribution.o Ranger.o Depositor.o
 Input.o :
-Output.o : Timer.o BeamBunch.o PhysConst.o
+Output.o : Timer.o BeamBunch.o PhysConst.o HDF5.o
 main.o : AccSimulator.o
+
+# Some objects have additional library requirements
+
+HDF5.o : HDF5.f90
+	$(FC) $(HDF_INCLUDE_PATH) -c $(FFLAGS) $< -o $@
 
 #***********************************************************************
 clean:
