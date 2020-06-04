@@ -66,11 +66,13 @@
         !! FlagRFQ: if RFQ cells are present then create output files
         !!          `rfq.dst` and `rfq.plt`
         !! FlagOpenPMDOutput: export particle data to OpenPMD-compliant HDF5 file
+        !! FlagReportOutput: show message on screen when writing to file
         !> @{
         integer :: Nx,Ny,Nz,Nxlocal,Nylocal,Nzlocal,Flagbc,&
                             Nblem,Flagmap,Flagdiag,FlagImage
         integer :: FlagRFQ = 0
         integer :: FlagOpenPMDOutput = 0
+        integer :: FlagReportOutput = 0
         !> @}
 
         !> @name
@@ -684,6 +686,9 @@
         isteerend = 0
 
         if(Rstartflg.eq.1) then
+          if(FlagReportOutput == 1 .and. myid == 0) then
+            print *, 'In-point output:', nfileout
+          end if
           call inpoint_Output(nfileout+myid,Ebunch(1),tend,iend,ibchend,nprow,npcol,&
           Ageom,Nx,Ny,Nz,myidx,myidy,Np(1),ioutend,itszend,isteerend,isloutend,&
           dtlessend)
@@ -1280,6 +1285,11 @@
         nplocal0 = Nplocal
         np0 = Np
 
+        ! Report commencement of diagnostic output
+        if(FlagReportOutput == 1 .and. myid == 0) then
+          print *, 'Diagnostic output (i, t, Flagdiag):', 0, t, Flagdiag
+        end if
+
         ! Output the moments from each bunch at fixed t to separate files
         DO ib = 1, Nbunch
             file_offset = 1000 * ib
@@ -1317,6 +1327,9 @@
         !betazini = sqrt(1.0-1.0/(1.0+distparam(21)**2))
         betazini = sqrt(1.0d0-1.0d0/(1.0d0+Bkenergy/Bmass)**2)
         !output initial phase space distribution 
+        if(FlagReportOutput == 1 .and. myid == 0) then
+          print *, 'Phase space output: ', 40
+        end if
         do ib = 1, Nbunch
           call phase_Output(40+ib-1,Ebunch(ib),1)
           qchg = Ebunch(ib)%Current/Scfreq
@@ -1325,6 +1338,9 @@
         enddo
         !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if(FlagRFQ.eq.1) then
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'RFQ output (Nblem):', Nblem
+            end if
             do ib=1, Nbunch
               call plt_Output(110+ib-1,Nblem,Ebunch(ib),Bfreq,ib)
             end do
@@ -1332,6 +1348,9 @@
         !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         if(FlagOpenPMDOutput == 1) then
+          if(FlagReportOutput == 1 .and. myid == 0) then
+            print *, 'OpenPMD output (i, t):', 0, 0.0d0
+          end if
           call openPMD_Output(0, 0.0d0, Ebunch, Nbunch)
         end if
 
@@ -2272,6 +2291,11 @@
             !diagnostic output at given interval
             if(mod(i, diag_interval) == 0) then
 
+            ! Report commencement of diagnostic output
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Diagnostic output (i, t, Flagdiag):', i, t, Flagdiag
+            end if
+
             ! Output the moments from each bunch at fixed t to separate files
             DO ib = 1, Nbunch
                 file_offset = 1000 * ib
@@ -2394,6 +2418,9 @@
             if(FlagRFQ.eq.1) then
                 if ((distance.le.zBlnelem(2,icell)) .and. &
                    ((distance+dzz).ge.zBlnelem(2,icell)))then
+                  if(FlagReportOutput == 1 .and. myid == 0) then
+                    print *, 'RFQ output (icell, sgcenter):', icell, sgcenter(:,ib)
+                  end if
                   do ib=1, Nbunch
                     call plt_Output(110+ib-1,Ebunch(ib), icell, sgcenter(:,ib), ib, np0(ib))
                   end do
@@ -2402,6 +2429,9 @@
             !~~~~~~~~~~~~~~~~~~**************
 
             if(FlagOpenPMDOutput == 1 .and. mod(i, openpmd_interval) == 0) then
+              if(FlagReportOutput == 1 .and. myid == 0) then
+                print *, 'OpenPMD output (i, t):', i, t
+              end if
               call openPMD_Output(i, t, Ebunch, Nbunch)
             end if
 
@@ -2628,6 +2658,9 @@
               vref = sqrt((Ebunch(ibb)%refptcl(2)/gam)**2+(Ebunch(ibb)%refptcl(6)/gam)**2)
               zz = zz + vref*dtless*Scxlt
 
+              if(FlagReportOutput == 1 .and. myid == 0) then
+                print *, 'Dipole diagnostic output (i, t):', i, t
+              end if
               call diagnostic1avgB_Output(t,Ebunch,Nbunch)
               print*,"zz: ",zz,zorgin2
 
@@ -2688,6 +2721,9 @@
             enddo
 
             iout = iout + 1
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Phase space output: ', nfileouttmp(iout)
+            end if
             do ib = 1, Nbunch
               call phase_Output(nfileouttmp(iout)+ib-1,Ebunch(ib),nsamp(iout))
             enddo
@@ -2702,6 +2738,9 @@
             else
 
             iout = iout + 1
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Phase space output: ', nfileouttmp(iout)
+            end if
             do ib = 1, Nbunch
               call phase_Output(nfileouttmp(iout)+ib-1,Ebunch(ib),nsamp(iout))
             enddo
@@ -2714,6 +2753,9 @@
             (distance+dzz).ge.tslout(islout+1)) then
  
             islout = islout + 1
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Slice output:', nfileslout(islout)
+            end if
             do ib = 1, Nbunch
               qchg = Ebunch(ib)%Current/Scfreq
               call sliceprocdep_Output(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
@@ -2723,6 +2765,9 @@
 
 !          if(t.le.trstart .and. (t+dtless*Dt).ge.trstart) then
           if(distance.le.trstart .and. (distance+dzz).ge.trstart) then
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Out-point output:', ib*nfileout
+            end if
             do ib = 1, Nbunch
               call outpoint_Output(ib*nfileout+myid,Ebunch(ib),t,&
                         i,ib,npx,npy,Ageom,iout,itsz,isteer,islout,dtless)
@@ -2794,10 +2839,18 @@
         !output six 2-D phase projections.
         !call phase2dold_Output(30,Ebunch,Np)
         !output all particles in 6d phase space at given location blnLength.
+        if(FlagReportOutput == 1 .and. myid == 0) then
+          print *, 'Phase space output: ', 50
+        end if
         do ib = 1, Nbunch
           i = 50+ib-1 
           call phase_Output(i,Ebunch(ib),1)
-          if(FlagRFQ.eq.1) call dst_Output(i+10,Ebunch(ib),Bfreq,ib) ! by LHP
+          if(FlagRFQ.eq.1) then
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'RFQ final distribution output: ', ib
+            end if
+            call dst_Output(i+10,Ebunch(ib),Bfreq,ib) ! by LHP
+          end if
           qchg = Ebunch(ib)%Current/Scfreq
           call sliceprocdep_Output(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
                    Nz,qchg,Ebunch(ib)%Mass,70+ib-1)
