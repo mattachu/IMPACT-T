@@ -65,10 +65,18 @@
         !! otherwise for no. 
         !! FlagRFQ: if RFQ cells are present then create output files
         !!          `rfq.dst` and `rfq.plt`
+        !! FlagOpenPMDOutput: export particle data to OpenPMD-compliant HDF5 file
         !> @{
         integer :: Nx,Ny,Nz,Nxlocal,Nylocal,Nzlocal,Flagbc,&
                             Nblem,Flagmap,Flagdiag,FlagImage
         integer :: FlagRFQ = 0
+        integer :: FlagOpenPMDOutput = 0
+        !> @}
+
+        !> @name
+        !! \# of steps between output for diagnostic and OpenPMD output
+        !> @{
+        integer :: diag_interval = 15, openpmd_interval = 15
         !> @}
 
         !> @name                    
@@ -1322,6 +1330,11 @@
             end do
         end if
         !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        if(FlagOpenPMDOutput == 1) then
+          call openPMD_Output(0, 0.0d0, Ebunch, Nbunch)
+        end if
+
         dzz = betazini*Clight*dtless*Dt
         zmin = 0.0d0
         call MPI_BARRIER(comm2d,ierr)
@@ -2256,8 +2269,8 @@
           endif
           t = t + 0.5*dtless*Dt
  
-            !output for every 15 steps
-            if(mod(i,15).eq.0) then
+            !diagnostic output at given interval
+            if(mod(i, diag_interval) == 0) then
 
             ! Output the moments from each bunch at fixed t to separate files
             DO ib = 1, Nbunch
@@ -2388,6 +2401,9 @@
             end if
             !~~~~~~~~~~~~~~~~~~**************
 
+            if(FlagOpenPMDOutput == 1 .and. mod(i, openpmd_interval) == 0) then
+              call openPMD_Output(i, t, Ebunch, Nbunch)
+            end if
 
           else !into bending magnet
 

@@ -16,6 +16,7 @@
         use Timerclass
         use BeamBunchclass
         use PhysConstclass
+        use HDF5class
 
         !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         interface plt_Output
@@ -3017,5 +3018,116 @@
         t_diag = t_diag + elapsedtime_Timer(t0)
 
         end subroutine diagnostic1avgZtest_Output
+
+
+        subroutine openPMD_Output(i, t, Ebunch, Nbunch)
+          implicit none
+          include 'mpif.h'
+          ! Parameters
+          integer,                       intent(in) :: i
+          double precision,              intent(in) :: t
+          type(BeamBunch), dimension(:), intent(in) :: Ebunch
+          integer,                       intent(in) :: Nbunch
+          ! Variables
+          integer          :: ib, ierr
+          type(hdf5file)   :: file
+          character(len=2) :: bunch_id = '00'
+          double precision :: scale_mass, scale_position, scale_momentum, &
+                              scale_energy
+          double precision :: z_offset = -5.0d-3
+
+          do ib = 1, Nbunch
+            ! Get particle name and scaling factors
+            write (bunch_id, '(I2.2)') ib
+            scale_mass = Scm0
+            scale_position = Scxlt
+            scale_momentum = Ebunch(ib)%Mass * scale_mass * Clight
+            scale_energy = Ebunch(ib)%Mass * scale_mass * Clight**2
+            ! Write particle mass
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitSI=scale_mass, &
+                          unitDimension=(/0.d0,1.d0,0.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='mass', &
+                          component='')
+            call pwpart(file, Ebunch(ib)%Mass, ierr)
+            ! Write particle positions
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitSI=scale_position, &
+                          unitDimension=(/1.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='position', &
+                          component='x')
+            call pwpart(file, Ebunch(ib)%Pts1(1,:), Ebunch(ib)%Nptlocal, ierr)
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitSI=scale_position, &
+                          unitDimension=(/1.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='position', &
+                          component='y')
+            call pwpart(file, Ebunch(ib)%Pts1(3,:), Ebunch(ib)%Nptlocal, ierr)
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitSI=scale_position, &
+                          unitDimension=(/1.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='position', &
+                          component='z')
+            call pwpart(file, Ebunch(ib)%Pts1(5,:), Ebunch(ib)%Nptlocal, ierr)
+            ! Write particle momenta
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitSI=scale_momentum, &
+                          unitDimension=(/1.d0,1.d0,-1.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='momentum', &
+                          component='x')
+            call pwpart(file, Ebunch(ib)%Pts1(2,:), Ebunch(ib)%Nptlocal, ierr)
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitSI=scale_momentum, &
+                          unitDimension=(/1.d0,1.d0,-1.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='momentum', &
+                          component='y')
+            call pwpart(file, Ebunch(ib)%Pts1(4,:), Ebunch(ib)%Nptlocal, ierr)
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitSI=scale_momentum, &
+                          unitDimension=(/1.d0,1.d0,-1.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='momentum', &
+                          component='z')
+            call pwpart(file, Ebunch(ib)%Pts1(6,:), Ebunch(ib)%Nptlocal, ierr)
+            ! Write position offsets
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitDimension=(/1.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='positionOffset', &
+                          component='x')
+            call pwpart(file, 0.0d0, ierr)
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitDimension=(/1.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='positionOffset', &
+                          component='y')
+            call pwpart(file, 0.0d0, ierr)
+            call file%new(iter=i, &
+                          time=real(t), &
+                          particleName='bunch'//trim(bunch_id), &
+                          unitDimension=(/1.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0/), &
+                          records='positionOffset', &
+                          component='z')
+            call pwpart(file, z_offset, ierr)
+          end do
+
+        end subroutine
+
+
       end module Outputclass
 
