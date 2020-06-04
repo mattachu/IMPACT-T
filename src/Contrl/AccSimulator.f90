@@ -72,7 +72,7 @@
                             Nblem,Flagmap,Flagdiag,FlagImage
         integer :: FlagRFQ = 0
         integer :: FlagOpenPMDOutput = 0
-        integer :: FlagReportOutput = 0
+        integer :: FlagReportOutput = 1
         !> @}
 
         !> @name
