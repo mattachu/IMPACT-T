@@ -1340,6 +1340,9 @@
         !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         if(FlagOpenPMDOutput == 1) then
+          if(FlagReportOutput == 1 .and. myid == 0) then
+            print *, 'OpenPMD output (i, t):', 0, 0.0d0
+          end if
           call openPMD_Output(0, 0.0d0, Ebunch, Nbunch)
         end if
 
@@ -2408,6 +2411,9 @@
             !~~~~~~~~~~~~~~~~~~**************
 
             if(FlagOpenPMDOutput == 1 .and. mod(i, openpmd_interval) == 0) then
+              if(FlagReportOutput == 1 .and. myid == 0) then
+                print *, 'OpenPMD output (i, t):', i, t
+              end if
               call openPMD_Output(i, t, Ebunch, Nbunch)
             end if
 
