@@ -17,6 +17,13 @@
         use BeamBunchclass
         use PhysConstclass
 
+        !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        interface plt_Output
+        module procedure plt1_Output,  &
+                          plt2_Output
+        end interface
+         !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
       contains
         !> calculate <x^2>,<xp>,<px^2>,x emittance, <y^2>,<ypy>,
         !> <py^2> and y emittance, <z^2>,<zp>,<pz^2>,z emittance.
@@ -25,7 +32,7 @@
         include 'mpif.h'
         double precision, intent(in) :: z
         type (BeamBunch), intent(inout) :: this
-        integer :: innp,nptot
+        integer :: innp,nptot,nptrans
         double precision:: den1,den2,sqsum1,sqsum2,sqsum3,sqsum4,&
                           epsx2,epsy2
         double precision:: xpx,ypy,epx,epy,xrms,pxrms,yrms,pyrms,&
@@ -283,7 +290,7 @@
 
           write(27,100)z,glmax(1)*xl,glmax(2),glmax(3)*xl,&
                        glmax(4),glmax(5)*xl,glmax(6)
-          write(28,101)z,npctmin,npctmax,nptot
+          write(28,101)z,npctmin,npctmax,nptot,nptrans
           write(29,100)z,x03*xl,px03,y03*xl,py03,z03*xl,&
                        pz03
           write(30,100)z,x04*xl,px04,y04*xl,py04,z04*xl,&
@@ -316,7 +323,7 @@
         double precision, intent(in) :: z
         type (BeamBunch), dimension(:), intent(inout) :: this
         integer, intent(in) :: Nbunch
-        integer :: innp,nptot
+        integer :: innp,nptot,nptrans
         double precision:: den1,den2,sqsum1,sqsum2,sqsum3,sqsum4,&
                           epsx2,epsy2
         double precision:: xpx,ypy,epx,epy,xrms,pxrms,yrms,pyrms,&
@@ -335,9 +342,17 @@
         integer :: i,my_rank,ierr,j
         double precision:: qmc,xl,xt
         double precision, dimension(6) :: localmax, glmax
-        double precision, dimension(29) :: tmplc,tmpgl
+!        double precision, dimension(29) :: tmplc,tmpgl
+        double precision, dimension(38) :: tmplc,tmpgl
         double precision :: t0,lcrmax,glrmax,z0gl,z0avg,testmax,pz0avg
-        double precision :: gamlc,gam2lc,gam2avg,tmpgam,gamdel
+        double precision :: gamlc,gam2lc,gam2avg,tmpgam,tmpgamz,gamdel
+        double precision :: h1x,h1y,h1z,h2x,h2y,h2z
+        double precision :: xpxlocal2, ypylocal2, zpzlocal2
+        double precision :: xpxlocal3, ypylocal3, zpzlocal3
+        double precision :: xpxlocal4, ypylocal4, zpzlocal4
+        double precision :: xpx2,ypy2,zpz2,xpx3,ypy3,zpz3,xpx4,ypy4,zpz4
+        double precision :: I4x, I4y, I4z, I2x, I2y, I2z
+        double precision :: kx,ky,kz,advx,advy,advz
         integer :: npctmin,npctmax,ib,innpmb,i1,i2
         real*8 :: gamavg,gamgl
         real*8, dimension(3) :: tmp3lc,tmp3gl
@@ -351,6 +366,7 @@
         call MPI_COMM_RANK(MPI_COMM_WORLD,my_rank,ierr)
 
         nptot = 0
+        nptrans = 0
         innpmb = 0
         z0lc = 0.0
         gamlc = 0.0d0
@@ -360,6 +376,7 @@
           innp = this(ib)%Nptlocal
           innpmb = innpmb + innp
           nptot = nptot + this(ib)%Npt
+          nptrans = nptrans + this(ib)%Nptrans
           do i = 1, innp
             tmp3lc(1) = tmp3lc(1) + this(ib)%Pts1(5,i)
             tmp3lc(2) = tmp3lc(2) + this(ib)%Pts1(6,i)
@@ -405,6 +422,44 @@
         z0lc4 = 0.0
         pz0lc3 = 0.0
         pz0lc4 = 0.0
+        h1x = 0.0
+        h1y = 0.0
+        h1z = 0.0
+        h2x = 0.0
+        h2y = 0.0
+        h2z = 0.0
+        xpxlocal2 = 0.0
+        ypylocal2 = 0.0
+        zpzlocal2 = 0.0
+        xpxlocal3 = 0.0
+        ypylocal3 = 0.0
+        zpzlocal3 = 0.0
+        xpxlocal4 = 0.0
+        ypylocal4 = 0.0
+        zpzlocal4 = 0.0
+        I2x = 0.0
+        I2y = 0.0
+        I2z = 0.0
+        I4x = 0.0
+        I4y = 0.0
+        I4z = 0.0
+        xpx2 = 0.0
+        ypy2 = 0.0
+        zpz2 = 0.0
+        xpx3 = 0.0
+        ypy3 = 0.0
+        zpz3 = 0.0
+        xpx4 = 0.0
+        ypy4 = 0.0
+        zpz4 = 0.0
+        kx = 0.0
+        ky = 0.0
+        kz = 0.0
+        advx = 0.0
+        advy = 0.0
+        advz = 0.0
+
+
         ! for cache optimization.
         if(innp.ne.0) then
           do i = 1, 6
@@ -425,8 +480,9 @@
         do ib = 1, Nbunch
           innp = this(ib)%Nptlocal
           do i = 1, innp
-            tmpgam = sqrt(1.0+this(ib)%Pts1(2,i)**2+&
-               this(ib)%Pts1(4,i)**2+this(ib)%Pts1(6,i)**2)
+            tmpgamz = sqrt(1.0+this(ib)%Pts1(6,i)**2)
+            tmpgam = sqrt(1.0+this(ib)%Pts1(2,i)**2+this(ib)%Pts1(4,i)**2+this(ib)%Pts1(6,i)**2)
+
             gamlc = gamlc + tmpgam
             !gam2lc = gam2lc + tmpgam**2
             gam2lc = gam2lc + (tmpgam-gamavg)**2
@@ -457,9 +513,20 @@
             z0lc4 = z0lc4 + (this(ib)%Pts1(5,i)-z0avg)**4
             zpzlocal = zpzlocal + (this(ib)%Pts1(5,i)-z0avg)*(this(ib)%Pts1(6,i)-pz0avg)
             pz0lc = pz0lc + this(ib)%Pts1(6,i)
-            sqsum6local = sqsum6local + (this(ib)%Pts1(6,i)-pz0avg)**2 
-            pz0lc3 = pz0lc3 + (abs(this(ib)%Pts1(6,i)-pz0avg)**3) 
-            pz0lc4 = pz0lc4 + (this(ib)%Pts1(6,i)-pz0avg)**4 
+            sqsum6local = sqsum6local + (this(ib)%Pts1(6,i)-pz0avg)**2
+            pz0lc3 = pz0lc3 + (abs(this(ib)%Pts1(6,i)-pz0avg)**3)
+            pz0lc4 = pz0lc4 + (this(ib)%Pts1(6,i)-pz0avg)**4
+            !! LHP
+            xpxlocal2 = xpxlocal2 + this(ib)%Pts1(1,i)**2*this(ib)%Pts1(2,i)**2
+            ypylocal2 = ypylocal2 + this(ib)%Pts1(3,i)**2*this(ib)%Pts1(4,i)**2
+            zpzlocal2 = zpzlocal2 + (this(ib)%Pts1(5,i)-z0avg)**2*(this(ib)%Pts1(6,i)-pz0avg)**2
+            xpxlocal3 = xpxlocal3 + this(ib)%Pts1(1,i)*this(ib)%Pts1(2,i)**3
+            ypylocal3 = ypylocal3 + this(ib)%Pts1(3,i)*this(ib)%Pts1(4,i)**3
+            zpzlocal3 = zpzlocal3 + (this(ib)%Pts1(5,i)-z0avg)*(this(ib)%Pts1(6,i)-pz0avg)**3
+            xpxlocal4 = xpxlocal4 + this(ib)%Pts1(1,i)**3*this(ib)%Pts1(2,i)
+            ypylocal4 = ypylocal4 + this(ib)%Pts1(3,i)**3*this(ib)%Pts1(4,i)
+            zpzlocal4 = zpzlocal4 + (this(ib)%Pts1(5,i)-z0avg)**3*(this(ib)%Pts1(6,i)-pz0avg)
+            !!~~~~~~~~~~~
             do j = 1, 4
               if(localmax(j).lt.abs(this(ib)%Pts1(j,i))) then
                  localmax(j) = abs(this(ib)%Pts1(j,i))
@@ -515,6 +582,15 @@
         tmplc(27) = pz0lc4
         tmplc(28) = gamlc
         tmplc(29) = gam2lc
+        tmplc(30) = xpxlocal2
+        tmplc(31) = ypylocal2
+        tmplc(32) = zpzlocal2
+        tmplc(33) = xpxlocal3
+        tmplc(34) = ypylocal3
+        tmplc(35) = zpzlocal3
+        tmplc(36) = xpxlocal4
+        tmplc(37) = ypylocal4
+        tmplc(38) = zpzlocal4
         
         call MPI_REDUCE(tmplc,tmpgl,29,MPI_DOUBLE_PRECISION,&
                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
@@ -608,6 +684,38 @@
           gam2avg = tmpgl(29)*den1
           !gamdel = sqrt(abs(gam2avg - gam**2))
           gamdel = sqrt(gam2avg)
+
+          !! Beam halo by LHP 2017/07
+          xpx2 = tmpgl(30)*den1
+          ypy2 = tmpgl(31)*den1
+          zpz2 = tmpgl(32)*den1
+          xpx3 = tmpgl(33)*den1
+          ypy3 = tmpgl(34)*den1
+          zpz3 = tmpgl(35)*den1
+          xpx4 = tmpgl(36)*den1
+          ypy4 = tmpgl(37)*den1
+          zpz4 = tmpgl(38)*den1
+
+          h1x = fthpx/sqpx**2-2.0
+          h1y = fthpy/sqpy**2-2.0
+          h1z = fthpz/sqpz**2-2.0
+          I2x = sqpx*sqx-(tmpgl(13)*den1)**2
+          I2y = sqpy*sqy-(tmpgl(14)*den1)**2
+          I2z = sqpz*sqz-(tmpgl(15)*den1)**2
+          I4x = fthx*fthpx+3*xpx2**2-4*xpx3*xpx4
+          I4y = fthy*fthpy+3*ypy2**2-4*ypy3*ypy4
+          I4z = fthz*fthpz+3*zpz2**2-4*zpz3*zpz4
+          h2x = sqrt(3*I4x)/2.0/I2x-2.0
+          h2y = sqrt(3*I4y)/2.0/I2y-2.0
+          h2z = sqrt(3*I4z)/2.0/I2z-2.0
+
+          kx = epx/xrms/pz0avg
+          ky = epy/yrms/pz0avg
+          kz = epz/zrms/pz0avg
+          advx = kx*0.5*Clight/Scfreq
+          advy = ky*0.5*Clight/Scfreq
+          advz = kz*0.5*Clight/Scfreq
+          !! ~~~~~~~~~~~~~~~~~~~~~~~
           write(18,100)z,z0avg*xl,gam,energy,bet,sqrt(glrmax)*xl,gamdel
 !          write(24,100)z,x0*xl,xrms*xl,px0,pxrms,-xpx/epx,epx*xl
 !          write(25,100)z,y0*xl,yrms*xl,py0,pyrms,-ypy/epy,epy*xl
@@ -618,12 +726,13 @@
 
           write(27,102)z,z0avg*xl,glmax(1)*xl,glmax(2),glmax(3)*xl,&
                        glmax(4),glmax(5)*xl,glmax(6)
-          write(28,101)z,z0avg*xl,npctmin,npctmax,nptot
+          write(28,101)z,z0avg*xl,npctmin,npctmax,nptot,nptrans
           write(29,102)z,z0avg*xl,x03*xl,px03,y03*xl,py03,z03*xl,&
                        pz03
           write(30,102)z,z0avg*xl,x04*xl,px04,y04*xl,py04,z04*xl,&
                        pz04
-
+          write(31,102)z,z0avg*xl,h1x,h1y,h1z,h2x,h2y,h2z   ! LHP beam halo
+          write(32,102)z,z0avg*xl, kx,ky,kz,advx,advy,advz   ! Phase advance
           call flush(18)
           call flush(24)
           call flush(25)
@@ -632,11 +741,12 @@
           call flush(28)
           call flush(29)
           call flush(30)
+          call flush(31)
         endif
 
 99      format(6(1x,e16.8))
 100      format(7(1x,e18.10))
-101     format(1x,e16.8,e16.8,3I10)
+101     format(1x,e16.8,e16.8,4I10)
 102      format(8(1x,e16.8))
 
         t_diag = t_diag + elapsedtime_Timer(t0)
@@ -652,7 +762,7 @@
         double precision, intent(in) :: z
         type (BeamBunch), dimension(:), intent(inout) :: this
         integer, intent(in) :: Nbunch
-        integer :: innp,nptot
+        integer :: innp,nptot,nptrans
         double precision:: den1,den2,sqsum1,sqsum2,sqsum3,sqsum4,&
                           epsx2,epsy2
         double precision:: xpx,ypy,epx,epy,xrms,pxrms,yrms,pyrms,&
@@ -687,6 +797,7 @@
         call MPI_COMM_RANK(MPI_COMM_WORLD,my_rank,ierr)
 
         nptot = 0
+        nptrans = 0
         innpmb = 0
         z0lc = 0.0
         gamlc = 0.0d0
@@ -696,6 +807,7 @@
           innp = this(ib)%Nptlocal
           innpmb = innpmb + innp
           nptot = nptot + this(ib)%Npt
+          nptrans = nptrans + this(ib)%Nptrans
           do i = 1, innp
             tmp3lc(1) = tmp3lc(1) + this(ib)%Pts1(5,i)
             tmp3lc(2) = tmp3lc(2) + this(ib)%Pts1(6,i)
@@ -990,7 +1102,7 @@
         double precision, intent(in) :: z
         type (BeamBunch), dimension(:), intent(inout) :: this
         integer, intent(in) :: Nbunch
-        integer :: innp,nptot
+        integer :: innp,nptot,nptrans
         double precision:: den1,den2,sqsum1,sqsum2,sqsum3,sqsum4,&
                           epsx2,epsy2
         double precision:: xpx,ypy,epx,epy,xrms,pxrms,yrms,pyrms,&
@@ -1024,12 +1136,14 @@
         call MPI_COMM_RANK(MPI_COMM_WORLD,my_rank,ierr)
 
         nptot = 0
+        nptrans = 0
         innpmb = 0
         z0lc = 0.0
         do ib = 1, Nbunch
           innp = this(ib)%Nptlocal
           innpmb = innpmb + innp
           nptot = nptot + this(ib)%Npt
+          nptrans = nptrans + this(ib)%Nptrans
           do i = 1, innp
             z0lc = z0lc + this(ib)%Pts1(5,i)
           enddo
@@ -1945,6 +2059,265 @@
 !        call MPI_Finalize(ierr)
 
         end subroutine end_Output
+
+        !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~***
+        ! generate .plt binary file for PlotWin
+        subroutine plt1_Output(nfile,Ncell,this,Freq0,bunchi)
+        implicit none
+        include 'mpif.h'
+        type(BeamBunch), intent(in) :: this
+        integer,intent(in) :: nfile, Ncell, bunchi    !,Npt
+        double precision, intent(in) ::  Freq0 !, mass0, Ibeam0
+        integer :: my_rank,ierr
+
+        integer(kind=4) :: Ne, Np
+        REAL(kind=8) :: Ibeam, Freq, Mass    !  mA, MHz, MeV
+        character(2)    :: char2
+        character(len=2) :: ID
+
+        call MPI_COMM_RANK(MPI_COMM_WORLD,my_rank,ierr)
+        char2 = "}d"
+        write(ID,'(I1)') bunchi
+        Freq=Freq0/1000000.0
+        Mass=this%Mass/1000000.0
+        Ibeam =this%Current*1000.0
+        Ne =Ncell
+        Np = this%Npt
+        if (my_rank.eq.0) then
+            open(nfile,file="rfq"//Trim(ID)//".plt",access="stream",status="replace",action ="Write")
+            write(nfile) char2
+            write(nfile) Ne, Np, Ibeam, Freq, Mass
+            close(nfile)
+        endif
+
+        end subroutine plt1_Output
+
+        subroutine plt2_Output(nfile,this,Npcell,bcenter,ib,npt)
+        implicit none
+        include 'mpif.h'
+        type(BeamBunch), intent(in) :: this
+        integer, intent(in) :: nfile,Npcell, ib,npt
+       ! type(BeamBunch), intent(in) :: this
+        double precision :: mass
+        double precision, dimension(6), intent(in) :: bcenter
+        integer :: Npart, Nptot
+        integer :: my_rank,np,ierr
+        integer status(MPI_STATUS_SIZE)
+        integer :: i,j,sixnpt,mnpt
+        integer, allocatable, dimension(:) :: nptlist
+        double precision, allocatable,dimension(:,:) :: recvbuf
+     !   double precision, dimension(1000) :: x,xp,y,yp,phs,ws
+        REAL(kind=4), allocatable :: x(:),xp(:),y(:),yp(:),phs(:),ws(:)                                                                             !   cm, rad,cm,rad,rad, MeV
+        REAL(kind=4), dimension(2) ::loss
+      !  integer ::Npt
+    !    REAL(kind=8) :: Ib, Freq, Mass
+        REAL(kind=8) :: Zgen, phs0, wgen    !cm, deg, MeV
+        integer(kind=4) :: Nelp
+        character(1) :: char1
+        character(len=2) :: ID
+
+        char1 = " "
+        loss(1)=0.0
+        loss(2)=1.0
+
+      !  Nptot: total particle numbers in all processors
+      !  Npt: initial particle number in all processors
+      !  this%Nptlocal: particle number in each processors
+         write(ID,'(I1)') ib
+         Nptot=this%Npt
+         mass=this%Mass
+         allocate(x(Npt))
+         allocate(xp(Npt))
+         allocate(y(Npt))
+         allocate(yp(Npt))
+         allocate(phs(Npt))
+         allocate(ws(Npt))
+
+        call MPI_COMM_RANK(MPI_COMM_WORLD,my_rank,ierr)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,np,ierr)
+        call MPI_ALLREDUCE(this%Nptlocal,mnpt,1,MPI_INTEGER,MPI_MAX,&
+                        MPI_COMM_WORLD,ierr)
+        allocate(nptlist(0:np-1))
+        nptlist = 0
+        allocate(recvbuf(6,mnpt))
+        sixnpt = 6*this%Nptlocal
+
+        call MPI_GATHER(this%Nptlocal,1,MPI_INTEGER,nptlist,1,&
+                        MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+        nptlist = 6*nptlist
+
+        wgen =(1.0/sqrt(1.0-bcenter(6)**2)-1.0)*mass/1000000.0  !MeV
+        Zgen =bcenter(5)*100.0*Scxlt !cm
+        phs0=0.0
+        Nelp =Npcell
+
+        if (my_rank.eq.0) then
+           open(nfile,file="rfq"//Trim(ID)//".plt",access="stream",status="old",action ="Write",position="append")
+           write(nfile) char1, Nelp, Zgen, phs0, wgen
+           do i=1,this%Nptlocal
+                x(i)=this%Pts1(1,i)*Scxlt*100.0
+                xp(i)=this%Pts1(2,i)/this%Pts1(6,i)
+                y(i) =this%Pts1(3,i)*Scxlt*100.0
+                yp(i)=this%Pts1(4,i)/this%Pts1(6,i)
+                phs(i)=-(this%Pts1(5,i)-bcenter(5))*Scxlt*2*PI*Scfreq/(bcenter(6)*Clight)
+                ws(i)= (1.0/sqrt(1.0-this%Pts1(6,i)**2)-1.0)*mass/1000000.0
+         !   loss(i) =0
+                write(nfile) x(i), xp(i),y(i),yp(i),phs(i), ws(i),loss(1)
+           end do
+
+           do i=1, np-1
+                  call MPI_RECV(recvbuf(1,1),nptlist(i),MPI_DOUBLE_PRECISION,&
+                          i,1,MPI_COMM_WORLD,status,ierr)
+
+                  do j = 1, nptlist(i)/6 !,samplePeriod
+                          x(j)=recvbuf(1,j)*Scxlt*100.0
+                          xp(j)=recvbuf(2,j)/this%Pts1(6,i)
+                          y(j) =recvbuf(3,j)*Scxlt*100.0
+                          yp(j)=recvbuf(4,j)/this%Pts1(6,i)
+                          phs(j)=-(recvbuf(5,j)-bcenter(5))*Scxlt*2*PI*Scfreq/(bcenter(6)*Clight)
+                          ws(j)= (1.0/sqrt(1.0-recvbuf(6,j)**2)-1.0)*mass/1.0E6
+                          write(nfile) x(j),xp(j),y(j),yp(j),phs(j),ws(j),loss(1)
+                 end do
+            enddo
+
+            if (Nptot .lt. Npt) then
+              do i=Nptot+1,Npt
+                 x(i)=0.0
+                 y(i)=0.0
+                 xp(i)=0.0
+                 yp(i)=0.0
+                 phs(i)=0.0
+                 ws(i)=wgen  ! check? *2
+                write(nfile) x(i), xp(i),y(i),yp(i),phs(i), ws(i),loss(2)
+             end do
+            endif
+        else
+             call MPI_SEND(this%Pts1(1,1),sixnpt,MPI_DOUBLE_PRECISION,0,1,&
+                        MPI_COMM_WORLD,ierr)
+        endif
+
+
+      !  stop
+        close(nfile)
+        deallocate(x)
+        deallocate(xp)
+        deallocate(y)
+        deallocate(yp)
+        deallocate(phs)
+        deallocate(ws)
+        end subroutine plt2_Output
+
+        subroutine dst_Output(nfile,this,freq0,ib)
+        implicit none
+        include 'mpif.h'
+        type(BeamBunch), intent(in) :: this
+        integer, intent(in) :: nfile, ib
+        double precision, intent(in) ::  freq0
+        integer status(MPI_STATUS_SIZE)
+        integer :: np,my_rank,ierr
+        integer :: i,j,sixnpt,mnpt
+        integer, allocatable, dimension(:) :: nptlist
+        double precision, allocatable,dimension(:,:) :: recvbuf
+
+        REAL(kind=8), allocatable :: x(:),xp(:),y(:),yp(:),phs(:),ws(:)
+        REAL(kind =8) :: Ibeam, mass, Freq !mA. MeV, MHz
+        integer(kind=4) :: Npt
+        character(1)    :: char1
+        character(2)    :: char2
+        double precision :: zgen, bzgen, zgensum, bzgensum
+        character(len=2) :: ID
+
+        Npt=this%Npt
+        allocate(x(Npt))
+        allocate(xp(Npt))
+        allocate(y(Npt))
+        allocate(yp(Npt))
+        allocate(phs(Npt))
+        allocate(ws(Npt))
+        char1 = " "
+        char2 = "  "
+
+        call MPI_COMM_RANK(MPI_COMM_WORLD,my_rank,ierr)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,np,ierr)
+        call MPI_ALLREDUCE(this%Nptlocal,mnpt,1,MPI_INTEGER,MPI_MAX,&
+                        MPI_COMM_WORLD,ierr)
+
+        allocate(nptlist(0:np-1))
+        nptlist = 0
+        allocate(recvbuf(6,mnpt))
+        sixnpt = 6*this%Nptlocal
+
+        call MPI_GATHER(this%Nptlocal,1,MPI_INTEGER,nptlist,1,&
+                        MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+        nptlist = 6*nptlist
+
+        write(ID,'(I1)') ib
+        zgen=0.0
+        bzgen=0.0
+        zgensum=0.0
+        bzgensum=0.0
+        Ibeam=this%Current*1000.0
+        Freq =freq0/1000000.0
+        mass =this%Mass/1000000.0
+
+        do i=1,this%Nptlocal
+            zgen=zgen+this%Pts1(5,i)
+            bzgen=bzgen+this%Pts1(6,i)
+        enddo
+        call MPI_ALLREDUCE(zgen,zgensum,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+                        MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(bzgen,bzgensum,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+                        MPI_COMM_WORLD,ierr)
+        zgen=zgensum/Npt
+        bzgen =bzgensum/Npt
+
+        if (my_rank.eq.0) then
+            open(nfile,file="rfq"//Trim(ID)//".dst",access="stream",status="replace",action ="Write")
+            write(nfile) char2
+            write(nfile) Npt, Ibeam, Freq, char1
+
+            do  i=1, this%Nptlocal
+                x(i)=this%Pts1(1,i)*Scxlt*100.0
+                xp(i)=this%Pts1(2,i)/this%Pts1(6,i)
+                y(i) =this%Pts1(3,i)*Scxlt*100.0
+                yp(i)=this%Pts1(4,i)/this%Pts1(6,i)
+                phs(i)=-(this%Pts1(5,i)-zgen)*Scxlt*2*PI*Scfreq/(bzgen*Clight)
+                ws(i)= (1.0/sqrt(1.0-this%Pts1(6,i)**2)-1.0)*mass
+              !   loss(i) =0
+                write(nfile) x(i), xp(i),y(i),yp(i),phs(i), ws(i)
+            end do
+
+            do i=1, np-1
+                 call MPI_RECV(recvbuf(1,1),nptlist(i),MPI_DOUBLE_PRECISION,&
+                          i,1,MPI_COMM_WORLD,status,ierr)
+
+                 do j = 1, nptlist(i)/6 !,samplePeriod
+                       x(j)=recvbuf(1,j)*Scxlt*100.0
+                       xp(j)=recvbuf(2,j)/this%Pts1(6,i)
+                       y(j) =recvbuf(3,j)*Scxlt*100.0
+                       yp(j)=recvbuf(4,j)/this%Pts1(6,i)
+                        phs(j)=-(recvbuf(5,j)-zgen)*Scxlt*2*PI*Scfreq/(bzgen*Clight)
+                        ws(j)= (1.0/sqrt(1.0-recvbuf(6,j)**2)-1.0)*mass
+                       write(nfile) x(j),xp(j),y(j),yp(j),phs(j),ws(j)
+                 end do
+            enddo
+
+            write(nfile) mass
+        else
+             call MPI_SEND(this%Pts1(1,1),sixnpt,MPI_DOUBLE_PRECISION,0,1,&
+                        MPI_COMM_WORLD,ierr)
+        endif
+
+        close(nfile)
+        deallocate(x)
+        deallocate(xp)
+        deallocate(y)
+        deallocate(yp)
+        deallocate(phs)
+        deallocate(ws)
+        end subroutine dst_Output
+
+        !~~~~~~~~~~~~~~~~~~~~~~~~**************
 
         subroutine inpoint_Output(nfile,this,z,inb,jstp,nprocrow,nproccol,&
                geom,nx,ny,nz,myidx,myidy,nptot,iout,itsz,isteer,islout,dtless)

@@ -211,11 +211,12 @@
         !> get external field without displacement and rotation errors.
         !> here, the skew quad can can be modeled with nonzero anglez
         !--------------------------------------------------------------------------------------
-        subroutine getfld_Quadrupole(pos,extfld,this)
+        subroutine getfld_Quadrupole(pos, momentum, extfld, this)
         implicit none
         include 'mpif.h'
         double precision, dimension(4), intent(in) :: pos
         type (Quadrupole), intent(in) :: this
+        double precision, dimension(3), intent(in)  :: momentum
         double precision, dimension(6), intent(out) :: extfld
         double precision:: zz,bgrad,zedge,bgradp,bgradpp,anglez
         real*8, dimension(2) :: tmp

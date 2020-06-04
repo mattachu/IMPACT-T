@@ -235,7 +235,7 @@
 !        endif
 
         deallocate(recv)
-        allocate(recv(6,numbuf+nmv0))
+        allocate(recv(6,numbuf+nmv0+1))
         do i = 1, nmv0
           recv(:,i) = temp1(:,i)
         enddo

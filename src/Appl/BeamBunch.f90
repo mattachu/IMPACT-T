@@ -26,9 +26,15 @@
           double precision :: Charge !< charge
           integer :: Npt !< num of total global macroparticles
           integer :: Nptlocal !< num of total local particles
+          integer :: Nptrans !< num of particles tranmitted
           double precision, pointer, dimension(:,:) :: Pts1 !< particles type one
           double precision, dimension(6) :: refptcl !< reference particle
         end type BeamBunch
+        interface lost_BeamBunch
+          module procedure lost_BeamBunch_without_dL
+          module procedure lost_BeamBunch_with_dL
+        end interface lost_BeamBunch
+
       contains
         !--------------------------------------------------------------------------------------
         !> @author Ji Qiang
@@ -51,6 +57,7 @@
         this%Mass = inmass
         this%Charge = incharge
         this%Npt = innp
+        this%Nptrans = this%Npt
 
         this%refptcl = 0.0d0
         this%refptcl(5) = phasini
@@ -756,7 +763,7 @@
         end subroutine scatter2t_BeamBunch
 
         subroutine scatter20t_BeamBunch(innp,rays,&
-        tg,chge,mass,dt,beamelem,zbeamelem,idrfile,nbeamln,ibinit,&
+        tg,chge,mass,dt,beamelem,zbeamelem,idrfile,nbeamln,bcenter,ibinit,&
         ibend,fldmap,flagerr)
         implicit none
         include 'mpif.h'
@@ -770,7 +777,8 @@
         integer :: n,i
         double precision :: t0
         double precision, dimension(4) :: pos
-        double precision, dimension(6) :: range, extfld,tmpfld
+        double precision, dimension(3) :: momentum!2016-2-10
+        double precision, dimension(6) :: range, extfld,tmpfld, bcenter
         double precision :: qmcc,recpgamma,coefLz,&
                             umx,umy,umz,upx,upy,upz,tmp,a1,a2,a3,a4,s1,s2,&
                             s3,ex,ey,ez,bx,by,bz,zz
@@ -802,18 +810,28 @@
           pos(2) = rays(3,n)*Scxlt
           pos(3) = zz
           pos(4) = tg
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          momentum(1)=rays(2,n)
+          momentum(2)=rays(4,n)
+          momentum(3)=rays(6,n)!add the return values 2015-12-4
+         ! momentum(1)=bcenter(2)
+          !momentum(2)=bcenter(4)
+          !momentum(3)=bcenter(6)
+          !LHP
+
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !get external field from all overlaped fields at one location
           extfld = 0.0
 !          print*,"noverlap: ",noverlap
           if(flagerr.eq.1) then
             do nnn = 1, noverlap
-              call getflderrt_BeamLineElem(beamelem(idbeamln(nnn)),pos,&
+              call getflderrt_BeamLineElem(beamelem(idbeamln(nnn)),pos,momentum,&
               tmpfld,fldmap(idrfile(3,idbeamln(nnn))))
               extfld = extfld + tmpfld
             enddo
           else
             do nnn = 1, noverlap
-              call getfldt_BeamLineElem(beamelem(idbeamln(nnn)),pos,&
+              call getfldt_BeamLineElem(beamelem(idbeamln(nnn)),pos,momentum,&
               tmpfld,fldmap(idrfile(3,idbeamln(nnn))))
               extfld = extfld + tmpfld
 !            if(nnn.eq.2) then
@@ -864,14 +882,15 @@
         end subroutine scatter20t_BeamBunch
 
         !implicit Boris type integrator
-        subroutine kick2t_BeamBunch(innp,innx,inny,innz,rays,exg,&
+        subroutine kick2t_BeamBunch(innp,incurr,innx,inny,innz,rays,exg,&
         eyg,ezg,bxg,byg,bzg,ptsgeom,npx,npy,myidx,myidy,tg,&
         chge,mass,dt,beamelem,zbeamelem,idrfile,nbeamln,ibinit,ibend,&
-        fldmap,flagerr)
+        fldmap,flagerr)!add beam current incurr 2016-2-10
         implicit none
         include 'mpif.h'
         integer, intent(in) :: innp,innx,inny,innz,npx,npy,myidx,myidy,&
                               nbeamln,flagerr
+        double precision, intent(in) :: incurr
         double precision, intent (inout), dimension(6,innp) :: rays
         double precision, intent (in), dimension(innx,inny,innz) :: exg,eyg,ezg 
         double precision, intent (in), dimension(innx,inny,innz) :: bxg,byg,bzg 
@@ -889,6 +908,7 @@
         double precision :: hx,hxi,hy,hyi,hz,hzi,xmin,ymin,zmin,zmax
         double precision, dimension(3) :: msize
         double precision, dimension(4) :: pos
+        double precision, dimension(3) :: momentum
         double precision, dimension(6) :: range, extfld
         type (CompDom) :: ptsgeom
         integer :: ix,jx,kx,ix1,jx1,kx1,ierr,kadd,jadd
@@ -904,7 +924,8 @@
         integer :: ntmp1,ntmp2
 
         call starttime_Timer( t0 )
-
+ ! write(10,100)exg(1,1,1),ezg(1,1,1),exg(10,10,10),ezg(10,10,10),exg(20,20,20),ezg(20,20,20)
+100       format(8(1x,e12.6))
         qmcc = chge/mass
         coefLz = qmcc*Scxlt
     
@@ -1038,17 +1059,22 @@
           pos(2) = rays(3,n)*Scxlt
           pos(3) = zz
           pos(4) = tg
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          momentum(1)=rays(2,n)
+          momentum(2)=rays(4,n)
+          momentum(3)=rays(6,n)!add the return values 2015-12-17
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !get external field from all overlaped fields at one location
           extfld = 0.0
           if(flagerr.eq.1) then 
             do nnn = 1, noverlap
-              call getflderrt_BeamLineElem(beamelem(idbeamln(nnn)),pos,&
+              call getflderrt_BeamLineElem(beamelem(idbeamln(nnn)),pos,momentum,&
               tmpfld,fldmap(idrfile(3,idbeamln(nnn))))
               extfld = extfld + tmpfld
             enddo
           else
             do nnn = 1, noverlap
-              call getfldt_BeamLineElem(beamelem(idbeamln(nnn)),pos,&
+              call getfldt_BeamLineElem(beamelem(idbeamln(nnn)),pos,momentum,&
               tmpfld,fldmap(idrfile(3,idbeamln(nnn))))
               extfld = extfld + tmpfld
             enddo
@@ -1123,18 +1149,23 @@
 
         end subroutine kick2t_BeamBunch
 
-        !check the particles outside the computational domain for each bunch/bin
-        subroutine lost_BeamBunch(this,xrad,yrad,zleng,zcent,nplc,nptot)
+        ! Check for particles outside the computational domain for each bunch/bin
+        !  - this version as original
+        subroutine lost_BeamBunch_without_dL(this,xrad,yrad,zleng,zcent,nplc,nptot)
+        ! Declarations
         implicit none
         include 'mpif.h'
+        ! Parameters
         type (BeamBunch), intent(inout) :: this
         double precision, intent(in) :: xrad,yrad,zleng,zcent
         integer, intent(out) :: nplc,nptot
+        ! Variables
         integer :: i
         integer :: ilost,i0,ierr
-        double precision, dimension(6) :: ptrange
+        double precision :: ptrange(6)
         double precision :: rr,rrap
  
+        ! Set ranges
         ptrange(1) = -xrad/Scxlt
         ptrange(2) = xrad/Scxlt
         ptrange(3) = -yrad/Scxlt
@@ -1144,7 +1175,100 @@
         ptrange(5) = 0.0
         ptrange(6) = zleng/Scxlt
         rrap = ptrange(1)**2 
+
+        ! Loop through particles in bunch
         ilost = 0
+        do i0 = 1, this%Nptlocal
+          i = i0 - ilost
+            ! Move surviving particles towards the front of the array
+            ! (lost particles are moved to the end and set to zero)
+          this%Pts1(1,i) = this%Pts1(1,i0)
+          this%Pts1(2,i) = this%Pts1(2,i0)
+          this%Pts1(3,i) = this%Pts1(3,i0)
+          this%Pts1(4,i) = this%Pts1(4,i0)
+          this%Pts1(5,i) = this%Pts1(5,i0)
+          this%Pts1(6,i) = this%Pts1(6,i0)
+            ! Check whether current particle is lost
+          rr = this%Pts1(1,i0)**2+this%Pts1(3,i0)**2
+          if(rr.ge.rrap) then
+                ! Lost at the aperature radius
+            ilost = ilost + 1
+          else if(this%Pts1(1,i0).le.ptrange(1)) then
+                ! Lost at negative x
+            ilost = ilost + 1
+          else if(this%Pts1(1,i0).ge.ptrange(2)) then
+                ! Lost at positive x
+            ilost = ilost + 1
+          else if(this%Pts1(3,i0).le.ptrange(3)) then
+                ! Lost at negative y
+            ilost = ilost + 1
+          else if(this%Pts1(3,i0).ge.ptrange(4)) then
+                ! Lost at positive y
+            ilost = ilost + 1
+            else if(this%Pts1(5,i0).le.ptrange(5) .and. this%Pts1(6,i0).lt.0.0) then
+                ! Lost at z = 0
+                ilost = ilost + 1
+            else if(this%Pts1(5,i0).ge.ptrange(6)) then
+                ! Lost at maximum z
+                ilost = ilost + 1
+            ! else if(this%Pts1(6,i0).lt.0.0) then !this does not allow particles move in negative direction
+            !   ilost = ilost + 1
+            end if
+        end do
+
+        ! Set lost particles to zero
+        do i = this%Nptlocal - ilost + 1, this%Nptlocal
+            this%Pts1(1,i) = 0.0
+            this%Pts1(2,i) = 0.0
+            this%Pts1(3,i) = 0.0
+            this%Pts1(4,i) = 0.0
+            this%Pts1(5,i) = -1.0e5
+            this%Pts1(6,i) = 0.0
+        end do
+
+        ! Modify particle counts and current
+        this%Nptlocal = this%Nptlocal - ilost
+        nplc = this%Nptlocal
+        call MPI_ALLREDUCE(nplc,nptot,1,MPI_INTEGER,&
+                           MPI_SUM,MPI_COMM_WORLD,ierr)
+        this%Current = this%Current*nptot/this%Npt
+        this%Npt = nptot
+
+        end subroutine lost_BeamBunch_without_dL
+
+        !check the particles outside the computational domain for each bunch/bin
+        ! PKU version with dL for periodic structures
+        subroutine lost_BeamBunch_with_dL(this,xrad,yrad,zleng,zcent,dL,nplc,nptot)
+        implicit none
+        include 'mpif.h'
+        type (BeamBunch), intent(inout) :: this
+        double precision, intent(in) :: xrad,yrad,zleng,zcent,dL
+        integer, intent(out) :: nplc,nptot
+        integer :: i
+        integer :: ilost,i0,ierr
+        double precision, dimension(6) :: ptrange
+        double precision :: rr,rrap
+        double precision :: gammas,gammai
+
+        integer :: xlost,ylost,zlost,tlost
+       ! xlost=0
+      !  ylost=0
+        zlost=0
+        tlost=0
+! write(1,100),2*dL/(clight/scfreq),this%Pts1(6,10),this%Pts1(6,50),this%Pts1(6,100),this%Pts1(6,500)
+100 format(8(1x,e12.6))
+        ptrange(1) = -xrad/Scxlt
+        ptrange(2) = xrad/Scxlt
+        ptrange(3) = -yrad/Scxlt
+        ptrange(4) = yrad/Scxlt
+        !ptrange(5) = zcent-0.5d0*zleng/Scxlt
+        !ptrange(6) = zcent+0.5d0*zleng/Scxlt
+        ptrange(5) = zleng
+        ptrange(6) = zleng/Scxlt
+        rrap = ptrange(1)**2
+        ilost = 0
+
+        gammas=1/sqrt(1-(2*dL/(clight/scfreq))**2)
         do i0 = 1, this%Nptlocal
           i = i0 - ilost
           this%Pts1(1,i) = this%Pts1(1,i0)
@@ -1154,25 +1278,30 @@
           this%Pts1(5,i) = this%Pts1(5,i0)
           this%Pts1(6,i) = this%Pts1(6,i0)
           rr = this%Pts1(1,i0)**2+this%Pts1(3,i0)**2
-          if(rr.ge.rrap) then
+          gammai=1/sqrt(1-(this%Pts1(6,i0))**2-(this%Pts1(4,i0))**2-(this%Pts1(2,i0))**2)
+      !    if(rr.ge.rrap) then
+         !   ilost = ilost + 1
+         !   tlost = tlost+1
+           if(this%Pts1(1,i0).le.ptrange(1)) then
             ilost = ilost + 1
-          else if(this%Pts1(1,i0).le.ptrange(1)) then
-            ilost = ilost + 1
+            tlost = tlost +1
           else if(this%Pts1(1,i0).ge.ptrange(2)) then
             ilost = ilost + 1
+            tlost = tlost +1
           else if(this%Pts1(3,i0).le.ptrange(3)) then
             ilost = ilost + 1
+            tlost = tlost +1
           else if(this%Pts1(3,i0).ge.ptrange(4)) then
             ilost = ilost + 1
-          else if(this%Pts1(5,i0).le.ptrange(5) .and. &
-                  this%Pts1(6,i0).lt.0.0) then
+            tlost = tlost +1
+          else if(abs((gammai-gammas)*Mass_0/1.0e6).gt.0.08) then  !0.0035
+
             ilost = ilost + 1
-          else if(this%Pts1(5,i0).ge.ptrange(6)) then
-            ilost = ilost + 1
-!          else if(this%Pts1(6,i0).lt.0.0) then !this does not allow particles move in negative direction
-!            ilost = ilost + 1
-          else
-          endif
+            zlost = zlost +1
+          !else if(abs(this%Pts1(6,i0)-2*dL/(clight/scfreq)).gt.0.015) then !this does not allow particles move in negative direction
+           ! ilost = ilost + 1
+             endif
+            ! loss(i0) =Ncell
         enddo
         do i = this%Nptlocal - ilost + 1, this%Nptlocal
           this%Pts1(1,i) = 0.0
@@ -1188,9 +1317,10 @@
                            MPI_SUM,MPI_COMM_WORLD,ierr)
         this%Current = this%Current*nptot/this%Npt
         this%Npt = nptot
- 
-        end subroutine lost_BeamBunch
-
+        this%Nptrans = this%Nptrans  - tlost
+         !     write(8,*) tlost,zlost,ptrange(1),ptrange(3)!,zcent
+!100     format(3(1x,e12.6),/)
+        end subroutine lost_BeamBunch_with_dL
 
         !check the particles outside the computational domain for each bunch/bin
         subroutine lostXY_BeamBunch(this,xradmin,xradmax,yradmin,yradmax,nplc,nptot)
@@ -1290,6 +1420,7 @@
         double precision :: dev,frac,frac1,stepsize
         integer :: it
         double precision :: gambetz,betz,gamz
+        double precision, dimension(3) :: momentum
 
         call starttime_Timer( t0 )
 
@@ -1345,11 +1476,16 @@
           pos(2) = rays(3,n)*Scxlt
           pos(3) = zz
           pos(4) = tg
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          momentum(1)=rays(2,n)
+          momentum(2)=rays(4,n)
+          momentum(3)=rays(6,n)
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !get external field from all overlaped fields at one location
           extfld = 0.0
 !          print*,"noverlap: ",noverlap
           do nnn = 1, noverlap
-            call getfldt_BeamLineElem(beamelem(idbeamln(nnn)),pos,&
+            call getfldt_BeamLineElem(beamelem(idbeamln(nnn)),pos,momentum,&
             tmpfld,fldmap(idrfile(3,idbeamln(nnn))))
             extfld = extfld + tmpfld
 !            if(nnn.eq.2) then
@@ -1664,6 +1800,7 @@
         integer :: j,ierr,sixnpt,jstart,jend,myid,sgn,sixnpttot
         double precision :: dev,frac,frac1,stepsize
         double precision :: gambetz,betz,gamz
+        double precision, dimension(3) :: momentum
 
         call starttime_Timer( t0 )
 
@@ -1721,11 +1858,16 @@
           pos(2) = rays(3,n)*Scxlt
           pos(3) = zz
           pos(4) = tg
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          momentum(1)=rays(2,n)
+          momentum(2)=rays(4,n)
+          momentum(3)=rays(6,n)
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !get external field from all overlaped fields at one location
           extfld = 0.0
 !          print*,"noverlap: ",noverlap
           do nnn = 1, noverlap
-            call getfldt_BeamLineElem(beamelem(idbeamln(nnn)),pos,&
+            call getfldt_BeamLineElem(beamelem(idbeamln(nnn)),pos,momentum,&
             tmpfld,fldmap(idrfile(3,idbeamln(nnn))))
             extfld = extfld + tmpfld
 !            if(nnn.eq.2) then
@@ -2432,6 +2574,7 @@
         double precision, dimension(6) :: tmpfld
         integer :: ntmp1,ntmp2
         double precision :: cs,ss
+        double precision, dimension(3) :: momentum
 
         call starttime_Timer( t0 )
 
@@ -2486,9 +2629,14 @@
         pos(2) = refpt(3)*Scxlt
         pos(3) = refpt(5)*Scxlt
         pos(4) = tg
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        momentum(1)=refpt(2)
+        momentum(2)=refpt(4)
+        momentum(3)=refpt(6)
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !get external field from all overlaped fields at one location
         extfld = 0.0
-        call getfldt_BeamLineElem(beamelem(idbd),pos,&
+        call getfldt_BeamLineElem(beamelem(idbd),pos,momentum,&
         extfld,fldmap(idrfile(3,idbd)))
 
         ex = extfld(1)
@@ -2597,7 +2745,7 @@
           pos(4) = tg
 
           !get external field from all overlaped fields at one location
-          call getfldt_BeamLineElem(beamelem(idbd),pos,&
+          call getfldt_BeamLineElem(beamelem(idbd),pos,momentum,&
           extfld,fldmap(idrfile(3,idbd)))
 
           ex = exn+extfld(1)*cs - extfld(3)*ss
@@ -2660,6 +2808,7 @@
         !for residence correction purpose
         double precision :: dev,frac,frac1,stepsize
         double precision :: cs,ss
+        double precision, dimension(3) :: momentum
 
         call starttime_Timer( t0 )
 
@@ -2674,9 +2823,14 @@
         pos(2) = refpt(3)*Scxlt
         pos(3) = refpt(5)*Scxlt
         pos(4) = tg
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        momentum(1)=refpt(2)
+        momentum(2)=refpt(4)
+        momentum(3)=refpt(6)
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !get external field from all overlaped fields at one location
         extfld = 0.0
-        call getfldt_BeamLineElem(beamelem(idbd),pos,&
+        call getfldt_BeamLineElem(beamelem(idbd),pos,momentum,&
         extfld,fldmap(idrfile(3,idbd)))
 
         ex = extfld(1)
@@ -2714,9 +2868,14 @@
           pos(2) = rays(3,n)*Scxlt
           pos(3) = (-ss*rays(1,n) + cs*rays(5,n))*Scxlt
           pos(4) = tg
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          momentum(1)=rays(2,n)
+          momentum(2)=rays(4,n)
+          momentum(3)=rays(6,n)
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
           !get external field from all overlaped fields at one location
-          call getfldt_BeamLineElem(beamelem(idbd),pos,&
+          call getfldt_BeamLineElem(beamelem(idbd),pos,momentum,&
           extfld,fldmap(idrfile(3,idbd)))
 
           ex = extfld(1)*cs - extfld(3)*ss
