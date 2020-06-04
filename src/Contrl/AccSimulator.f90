@@ -63,9 +63,11 @@
         !! \# of beam elems, type of integrator.
         !! FlagImage: switch flag for image space-charge force calculation: "1" for yes, 
         !! otherwise for no. 
+        !! FlagReportOutput: show message on screen when writing to file
         !> @{
         integer :: Nx,Ny,Nz,Nxlocal,Nylocal,Nzlocal,Flagbc,&
                             Nblem,Flagmap,Flagdiag,FlagImage
+        integer :: FlagReportOutput = 0
         !> @}
 
         !> @name                    
@@ -594,6 +596,9 @@
         itszend = 0
         isteerend = 0
         if(Rstartflg.eq.1) then
+          if(FlagReportOutput == 1 .and. myid == 0) then
+            print *, 'In-point output:', nfileout
+          end if
           call inpoint_Output(nfileout+myid,Ebunch(1),tend,iend,ibchend,nprow,npcol,&
           Ageom,Nx,Ny,Nz,myidx,myidy,Np(1),ioutend,itszend,isteerend,isloutend,&
           dtlessend)
@@ -1159,6 +1164,12 @@
         enddo
         nplocal0 = Nplocal(1)
         np0 = Np(1)
+
+        ! Report commencement of diagnostic output
+        if(FlagReportOutput == 1 .and. myid == 0) then
+          print *, 'Diagnostic output (i, t, Flagdiag):', 0, t, Flagdiag
+        end if
+
         if(Flagdiag.eq.1) then
           !output the moments from the average of all bunches at fixed t.
           call diagnostic1avg_Output(t,Ebunch,Nbunch)
@@ -1190,6 +1201,9 @@
         !betazini = sqrt(1.0-1.0/(1.0+distparam(21)**2))
         betazini = sqrt(1.0d0-1.0d0/(1.0d0+Bkenergy/Bmass)**2)
         !output initial phase space distribution 
+        if(FlagReportOutput == 1 .and. myid == 0) then
+          print *, 'Phase space output: ', 40
+        end if
         do ib = 1, Nbunch
           call phase_Output(40+ib-1,Ebunch(ib),1)
           qchg = Ebunch(ib)%Current/Scfreq
@@ -2081,6 +2095,11 @@
           !output for every 5 steps
           if(mod(i,5).eq.0) then
 
+            ! Report commencement of diagnostic output
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Diagnostic output (i, t, Flagdiag):', i, t, Flagdiag
+            end if
+
           if(Flagdiag.eq.1) then
             call diagnostic1avg_Output(t,Ebunch,Nbunch)
           else if(Flagdiag.eq.2) then
@@ -2363,6 +2382,9 @@
               vref = sqrt((Ebunch(ibb)%refptcl(2)/gam)**2+(Ebunch(ibb)%refptcl(6)/gam)**2)
               zz = zz + vref*dtless*Scxlt
 
+              if(FlagReportOutput == 1 .and. myid == 0) then
+                print *, 'Dipole diagnostic output (i, t):', i, t
+              end if
               call diagnostic1avgB_Output(t,Ebunch,Nbunch)
               print*,"zz: ",zz,zorgin2
 
@@ -2423,6 +2445,9 @@
             enddo
 
             iout = iout + 1
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Phase space output: ', nfileouttmp(iout)
+            end if
             do ib = 1, Nbunch
               call phase_Output(nfileouttmp(iout)+ib-1,Ebunch(ib),nsamp(iout))
             enddo
@@ -2437,6 +2462,9 @@
             else
 
             iout = iout + 1
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Phase space output: ', nfileouttmp(iout)
+            end if
             do ib = 1, Nbunch
               call phase_Output(nfileouttmp(iout)+ib-1,Ebunch(ib),nsamp(iout))
             enddo
@@ -2449,6 +2477,9 @@
             (distance+dzz).ge.tslout(islout+1)) then
  
             islout = islout + 1
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Slice output:', nfileslout(islout)
+            end if
             do ib = 1, Nbunch
               qchg = Ebunch(ib)%Current/Scfreq
               call sliceprocdep_Output(Ebunch(ib)%Pts1,Nplocal(ib),Np(ib),&
@@ -2458,6 +2489,9 @@
 
 !          if(t.le.trstart .and. (t+dtless*Dt).ge.trstart) then
           if(distance.le.trstart .and. (distance+dzz).ge.trstart) then
+            if(FlagReportOutput == 1 .and. myid == 0) then
+              print *, 'Out-point output:', ib*nfileout
+            end if
             do ib = 1, Nbunch
               call outpoint_Output(ib*nfileout+myid,Ebunch(ib),t,&
                         i,ib,npx,npy,Ageom,iout,itsz,isteer,islout,dtless)
@@ -2529,6 +2563,9 @@
         !output six 2-D phase projections.
         !call phase2dold_Output(30,Ebunch,Np)
         !output all particles in 6d phase space at given location blnLength.
+        if(FlagReportOutput == 1 .and. myid == 0) then
+          print *, 'Phase space output: ', 50
+        end if
         do ib = 1, Nbunch
           i = 50+ib-1 
           call phase_Output(i,Ebunch(ib),1)
