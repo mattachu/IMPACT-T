@@ -13,19 +13,21 @@ FFLAGS = -O3
 #**************************************************************************
 # Libraries
 
+OS := $(shell uname)
+
 ## HDF5
 
-HDF_INCLUDE_PATH = \
-	-I/usr/local/include -I/usr/local/lib \
-	-lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5
-
-HDF_LIBPATH = \
-	-L/usr/local/lib \
-	-lhdf5 -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran
+ifeq "$(OS)" "Linux"
+	HDF_INCLUDE = -I/usr/include/hdf5/openmpi
+	HDF_LIBS = -lhdf5_openmpi_fortran
+else
+	HDF_INCLUDE = -I/usr/local/include
+	HDF_LIBS = -L/usr/local/lib -lhdf5_fortran
+endif
 
 ## Combined library path for link step
 
-LIBS = $(HDF_LIBPATH)
+LIBS = $(HDF_LIBS)
 
 #**************************************************************************
 # List of .o files that EXENAME depends on.  Edit as appropriate for MP.
@@ -128,7 +130,7 @@ main.o : AccSimulator.o
 # Some objects have additional library requirements
 
 HDF5.o : HDF5.f90
-	$(FC) $(HDF_INCLUDE_PATH) -c $(FFLAGS) $< -o $@
+	$(FC) $(HDF_INCLUDE) -c $(FFLAGS) $< -o $@
 
 #***********************************************************************
 # Recipes
