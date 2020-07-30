@@ -490,6 +490,18 @@
         else
         endif
 
+        print *, myid, "Computational domain initialised."
+        print *, myid, "nx, ny, nz, nprocrow, nproccol:", nx, ny, nz, nprocrow, nproccol
+        print *, myid, "flg, Flagbc:", flg, Flagbc
+        print *, myid, "hy, hz:", hy, hz
+        print *, myid, "this%SpatRange:", this%SpatRange
+        print *, myid, "this%Sptrnglocal:", this%Sptrnglocal
+        print *, myid, "this%Meshsize:", this%Meshsize
+        print *, myid, "this%Meshnum:", this%Meshnum
+        print *, myid, "this%Mshlocal:", this%Mshlocal
+        print *, myid, "this%LcTabrg:", this%LcTabrg
+        print *, myid, "this%LcTabnm:", this%LcTabnm
+
 !        call MPI_BARRIER(commrow,ierr)
         
         end subroutine init_CompDom
@@ -522,6 +534,14 @@
         call getsize_Pgrid2d(grid2d,nproc,nproccol,nprocrow)
         call getpost_Pgrid2d(grid2d,myid,myidy,myidx)
 
+        print *, myid, "Updating computational domain..."
+        print *, myid, "Line 524"
+        print *, myid, "nproc, nproccol, nprocrow:", nproc, nproccol, nprocrow
+        print *, myid, "Flagbc:", Flagbc
+        print *, myid, "this%LcTabnm:", this%LcTabnm
+        print *, myid, "this%LcTabrg:", this%LcTabrg
+        print *, myid, "hx, hy, hz:", hx, hy, hz
+
         do i = 1, 3
           localrange1(i) = ptrange(2*i-1)
           localrange2(i) = ptrange(2*i)
@@ -532,7 +552,7 @@
         call MPI_ALLREDUCE(localrange2,temp2,3,MPI_DOUBLE_PRECISION,&
                            MPI_MAX,comm2d,ierr) 
 
-        !print*,"temp: ",temp1(1),temp2(1),temp1(2),temp2(2),temp1(3),temp2(3)
+        print *, myid, "temp: ",temp1(1),temp2(1),temp1(2),temp2(2),temp1(3),temp2(3)
         !epsx = 0.001
         !epsy = 0.001
         !epsz = 0.001
@@ -573,7 +593,7 @@
           zmin = temp1(3)
           zmax = temp2(3)
         else
-          !print*,"no such boundary condition!!!"
+          print *, myid, "no such boundary condition!!!"
           !stop
           xmin = temp1(1)-epsx*(temp2(1)-temp1(1))
           xmax = temp2(1)+epsx*(temp2(1)-temp1(1))
@@ -583,7 +603,7 @@
           zmax = temp2(3)+epsz*(temp2(3)-temp1(3))
         endif
 
-        !print*,"xmin ",xmin,xmax,ymin,ymax,zmin,zmax
+        print *, myid, "x/y/z min/max: ",xmin,xmax,ymin,ymax,zmin,zmax
 
         scale = (zmax-zmin)/(this%SpatRange(6)-this%SpatRange(5))
         do j = 0, nproccol-1
@@ -598,6 +618,12 @@
           enddo
         enddo
             
+        print *, myid, "Line 600"
+        print *, myid, "scale, length:", scale, length
+        print *, myid, "this%SpatRange:", this%SpatRange
+        print *, myid, "this%LcTabnm:", this%LcTabnm
+        print *, myid, "this%LcTabrg:", this%LcTabrg
+
         if(Flagbc.eq.3) then
         else
 
@@ -623,6 +649,13 @@
         hz = (zmax-zmin)/(this%Meshnum(3)-1) 
         this%Meshsize(3) = hz
 
+        print *, myid, "Line 625"
+        print *, myid, "scale, length:", scale, length
+        print *, myid, "this%LcTabnm:", this%LcTabnm
+        print *, myid, "this%LcTabrg:", this%LcTabrg
+        print *, myid, "hx, hy, hz:", hx, hy, hz
+        print *, myid, "this%Meshsize:", this%Meshsize
+
         if(nprocrow.gt.1) then
 
         do i = 0, nprocrow-1
@@ -637,6 +670,9 @@
           enddo
         enddo
 
+        print *, myid, "Line 639"
+        print *, myid, "this%LcTabnm:", this%LcTabnm
+
         do j = 0, nproccol - 1
           nsum = 0
           do i = 0, nprocrow -2
@@ -644,6 +680,10 @@
           enddo
           this%LcTabnm(1,nprocrow-1,j) = this%Meshnum(3) - nsum
         enddo
+
+        print *, myid, "Line 647"
+        print *, myid, "nsum:", nsum
+        print *, myid, "this%LcTabnm:", this%LcTabnm
 
         endif
 
@@ -673,6 +713,10 @@
           endif
         endif
 
+        print *, myid, "Line 675"
+        print *, myid, "nsum:", nsum
+        print *, myid, "this%LcTabnm:", this%LcTabnm
+
         if(nprocrow.gt.1) then
 
         do i = 0, nprocrow - 1
@@ -680,6 +724,12 @@
             this%LcTabnm(1,i,0) = 1
             this%LcTabrg(1,i,0) = this%LcTabrg(1,i,0) - hz
             iflag = 0
+
+            print *, myid, "Line 683"
+            print *, myid, "iflag:", iflag
+            print *, myid, "this%LcTabnm:", this%LcTabnm
+            print *, myid, "this%LcTabrg:", this%LcTabrg
+
             do i0 = i-1,0,-1
               if(this%LcTabnm(1,i0,0).gt.1) then
                 this%LcTabnm(1,i0,0) = this%LcTabnm(1,i0,0)-1
@@ -691,13 +741,31 @@
                 this%LcTabrg(2,i0,0) = this%LcTabrg(2,i0,0)-hz
               endif
             enddo
+
+            print *, myid, "Line 694"
+            print *, myid, "iflag:", iflag
+            print *, myid, "this%LcTabnm:", this%LcTabnm
+            print *, myid, "this%LcTabrg:", this%LcTabrg
+
             if(iflag.eq.0) then
               this%LcTabrg(1,i,0) = this%LcTabrg(1,i,0) + hz
+
+              print *, myid, "Line 696"
+              print *, myid, "iflag:", iflag
+              print *, myid, "this%LcTabnm:", this%LcTabnm
+              print *, myid, "this%LcTabrg:", this%LcTabrg
+
               do i0 = 0, i-1
                 this%LcTabrg(1,i0,0) = this%LcTabrg(1,i0,0)+hz
                 this%LcTabrg(2,i0,0) = this%LcTabrg(2,i0,0)+hz
               enddo
               this%LcTabrg(2,i,0) = this%LcTabrg(2,i,0) + hz
+
+              print *, myid, "Line 701"
+              print *, myid, "iflag:", iflag
+              print *, myid, "this%LcTabnm:", this%LcTabnm
+              print *, myid, "this%LcTabrg:", this%LcTabrg
+
               do i0 = i+1, nprocrow-1
                 if(this%LcTabnm(1,i0,0).gt.1) then
                   this%LcTabnm(1,i0,0) = this%LcTabnm(1,i0,0)-1
@@ -709,10 +777,21 @@
                   this%LcTabrg(2,i0,0) = this%LcTabrg(2,i0,0)+hz
                 endif
               enddo
+
+              print *, myid, "Line 711"
+              print *, myid, "iflag:", iflag
+              print *, myid, "this%LcTabnm:", this%LcTabnm
+              print *, myid, "this%LcTabrg:", this%LcTabrg
+
             endif
+
+            print *, myid, "Line 713"
+            print *, myid, "iflag:", iflag
+            print *, myid, "this%LcTabnm:", this%LcTabnm
+            print *, myid, "this%LcTabrg:", this%LcTabrg
+
             if(iflag.eq.0) then
-              print*,"Number of grids less than number of processors", &
-                      "in z!"
+              print *, myid, "Number of grids less than number of processors in z!"
               stop
             endif
           endif
