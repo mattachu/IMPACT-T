@@ -71,7 +71,7 @@
         integer :: Nx,Ny,Nz,Nxlocal,Nylocal,Nzlocal,Flagbc,&
                             Nblem,Flagmap,Flagdiag,FlagImage
         integer :: FlagRFQ = 0
-        integer :: FlagOpenPMDOutput = 0
+        integer :: FlagOpenPMDOutput = 1
         integer :: FlagReportOutput = 1
         !> @}
 
