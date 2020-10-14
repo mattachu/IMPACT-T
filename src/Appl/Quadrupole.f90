@@ -176,8 +176,10 @@
 !        extfld(5) = bgrad*tmp(1)
 !        extfld(6) = 0.0
         if(this%Param(3).gt.0.0) then
-          extfld(4) = bgrad*tmp(2) - bgradpp*tmp(2)**3/6
-          extfld(5) = bgrad*tmp(1) - bgradpp*tmp(1)*tmp(2)**2/2
+          extfld(4) = bgrad*tmp(2) - &
+                      bgradpp*(tmp(2)**3+3*tmp(1)**2*tmp(2))/12
+          extfld(5) = bgrad*tmp(1) - &
+                      bgradpp*(tmp(1)**3+3*tmp(1)*tmp(2)**2)/12
           extfld(6) = bgradp*tmp(1)*tmp(2)
         else
           extfld(4) = bgrad*tmp(2)
@@ -244,11 +246,11 @@
         extfld(2) = 0.0
         extfld(3) = 0.0
         if(this%Param(3).gt.0.0) then
-          !extfld(4) = bgrad*pos(2) - bgradpp*pos(2)**3/6
-          !extfld(5) = bgrad*pos(1) - bgradpp*pos(1)*pos(2)**2/2
-          !extfld(6) = bgradp*pos(1)*pos(2)
-          temp(1) = bgrad*tmp(2) - bgradpp*tmp(2)**3/6
-          temp(2) = bgrad*tmp(1) - bgradpp*tmp(1)*tmp(2)**2/2
+          temp(1) = bgrad*tmp(2) - &
+                      bgradpp*(tmp(2)**3+3*tmp(1)**2*tmp(2))/12
+          temp(2) = bgrad*tmp(1) - &
+                      bgradpp*(tmp(1)**3+3*tmp(1)*tmp(2)**2)/12
+
           temp(3) = bgradp*tmp(1)*tmp(2)
         else
           !extfld(4) = bgrad*pos(2)
@@ -431,8 +433,11 @@
 !        extfld(5) = bgrad*tmp(1)
 !        extfld(6) = 0.0
         if(this%Param(3).gt.0.0) then
-          extfld(4) = bgrad*tmp(2) - bgradpp*tmp(2)**3/6
-          extfld(5) = bgrad*tmp(1) - bgradpp*tmp(1)*tmp(2)**2/2
+          extfld(4) = bgrad*tmp(2) - &
+                      bgradpp*(tmp(2)**3+3*tmp(1)**2*tmp(2))/12
+          extfld(5) = bgrad*tmp(1) - &
+                      bgradpp*(tmp(1)**3+3*tmp(1)*tmp(2)**2)/12
+
           extfld(6) = bgradp*tmp(1)*tmp(2)
         else
           extfld(4) = bgrad*tmp(2)
