@@ -1405,30 +1405,30 @@
                              ptrange,sgcenter)
 
               do ipt = 1, Nplocal(ib)
-                 tmpx = Ebunch(ib)%Pts1(1,ipt)  - sgcenter(1)
-                 tmppx = Ebunch(ib)%Pts1(2,ipt) - sgcenter(2)
-                 tmpy = Ebunch(ib)%Pts1(3,ipt)  - sgcenter(3)
-                 tmppy = Ebunch(ib)%Pts1(4,ipt) - sgcenter(4)
-                 tmpz = Ebunch(ib)%Pts1(5,ipt)  - sgcenter(5)
-                 tmppz = Ebunch(ib)%Pts1(6,ipt) - sgcenter(6)
+                 tmpx = Ebunch(ib)%Pts1(1,ipt)  - sgcenter(1, ib)
+                 tmppx = Ebunch(ib)%Pts1(2,ipt) - sgcenter(2, ib)
+                 tmpy = Ebunch(ib)%Pts1(3,ipt)  - sgcenter(3, ib)
+                 tmppy = Ebunch(ib)%Pts1(4,ipt) - sgcenter(4, ib)
+                 tmpz = Ebunch(ib)%Pts1(5,ipt)  - sgcenter(5, ib)
+                 tmppz = Ebunch(ib)%Pts1(6,ipt) - sgcenter(6, ib)
                  Ebunch(ib)%Pts1(1,ipt)=tmpx*rmt(1,1,imap)+tmppx*rmt(1,2,imap)+&
                     tmpy*rmt(1,3,imap)+tmppy*rmt(1,4,imap)+&
-                    tmpz*rmt(1,5,imap)+tmppz*rmt(1,6,imap)+ sgcenter(1)
+                    tmpz*rmt(1,5,imap)+tmppz*rmt(1,6,imap)+ sgcenter(1, ib)
                  Ebunch(ib)%Pts1(2,ipt)=tmpx*rmt(2,1,imap)+tmppx*rmt(2,2,imap)+&
                     tmpy*rmt(2,3,imap)+tmppy*rmt(2,4,imap)+&
-                    tmpz*rmt(2,5,imap)+tmppz*rmt(2,6,imap)+ sgcenter(2)
+                    tmpz*rmt(2,5,imap)+tmppz*rmt(2,6,imap)+ sgcenter(2, ib)
                  Ebunch(ib)%Pts1(3,ipt)=tmpx*rmt(3,1,imap)+tmppx*rmt(3,2,imap)+&
                     tmpy*rmt(3,3,imap)+tmppy*rmt(3,4,imap)+&
-                    tmpz*rmt(3,5,imap)+tmppz*rmt(3,6,imap)+ sgcenter(3)
+                    tmpz*rmt(3,5,imap)+tmppz*rmt(3,6,imap)+ sgcenter(3, ib)
                  Ebunch(ib)%Pts1(4,ipt)=tmpx*rmt(4,1,imap)+tmppx*rmt(4,2,imap)+&
                     tmpy*rmt(4,3,imap)+tmppy*rmt(4,4,imap)+&
-                    tmpz*rmt(4,5,imap)+tmppz*rmt(4,6,imap)+ sgcenter(4)
+                    tmpz*rmt(4,5,imap)+tmppz*rmt(4,6,imap)+ sgcenter(4, ib)
                  Ebunch(ib)%Pts1(5,ipt)=tmpx*rmt(5,1,imap)+tmppx*rmt(5,2,imap)+&
                     tmpy*rmt(5,3,imap)+tmppy*rmt(5,4,imap)+&
-                    tmpz*rmt(5,5,imap)+tmppz*rmt(5,6,imap)+ sgcenter(5)
+                    tmpz*rmt(5,5,imap)+tmppz*rmt(5,6,imap)+ sgcenter(5, ib)
                  Ebunch(ib)%Pts1(6,ipt)=tmpx*rmt(6,1,imap)+tmppx*rmt(6,2,imap)+&
                     tmpy*rmt(6,3,imap)+tmppy*rmt(6,4,imap)+&
-                    tmpz*rmt(6,5,imap)+tmppz*rmt(6,6,imap)+ sgcenter(6)
+                    tmpz*rmt(6,5,imap)+tmppz*rmt(6,6,imap)+ sgcenter(6, ib)
               enddo
             enddo
           endif
