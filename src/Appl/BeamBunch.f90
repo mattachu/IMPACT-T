@@ -929,6 +929,42 @@ contains
         qmcc = chge/mass
         coefLz = qmcc*Scxlt
 
+        if ((myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
+
+            print *, '--------------------DEBUGGING--------------------'
+            print *, 'Called `kick2t_BeamBunch` with parameters:'
+            print *, '       innp: ', innp
+            print *, '     incurr: ', incurr
+            print *, '       innx: ', innx
+            print *, '       inny: ', inny
+            print *, '       innz: ', innz
+            print *, '       rays: [array]'
+            print *, '        exg: [array]'
+            print *, '        eyg: [array]'
+            print *, '        ezg: [array]'
+            print *, '        bxg: [array]'
+            print *, '        byg: [array]'
+            print *, '        bzg: [array]'
+            print *, '        npx: ', npx
+            print *, '        npy: ', npy
+            print *, '      myidx: ', myidx
+            print *, '      myidy: ', myidy
+            print *, '         tg: ', tg
+            print *, '       chge: ', chge
+            print *, '       mass: ', mass
+            print *, '         dt: ', dt
+            print *, '  zbeamelem: [array]'
+            print *, '    idrfile: ', idrfile
+            print *, '    nbeamln: ', nbeamln
+            print *, '     ibinit: ', ibinit
+            print *, '      ibend: ', ibend
+            print *, '    flagerr: ', flagerr
+            print *, 'Key calculated parameters:'
+            PRINT *, ' - charge/mass ratio `qmcc`: ', qmcc
+            print *, ' - coefficient `coefLz`: ', coefLz
+
+        endif
+
         call getmsize_CompDom(ptsgeom,msize)
         hxi = 1.0d0/msize(1)
         hyi = 1.0d0/msize(2)
@@ -972,6 +1008,13 @@ contains
 
         do n = 1, innp
             if(rays(5,n)>0) then !//only particles outside the emission plane get accelerated
+
+                if ((n == 1 ) .and. (myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
+
+                    print *, 'Now processing particle #: ', n
+                    print *, 'Particle phase space: ', rays(:,n)
+
+                endif
 
                 ix=(rays(1,n)-xmin)*hxi + 1
                 ab=((xmin-rays(1,n))+ix*hx)*hxi
@@ -1042,6 +1085,14 @@ contains
                         +byg(ix1,jx1,kx)*(1.0d0-ab)*(1.0d0-cd)*ef &
                         +byg(ix1,jx,kx)*(1.0d0-ab)*cd*ef
 
+                if ((n == 1 ) .and. (myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
+
+                    print *, 'Calculated field at this point:'
+                    print *, ' - electric: ', exn, eyn, ezn
+                    print *, ' - magnetic: ', bxn, byn, 0.0d0
+
+                endif
+
                 !find which element the particle belongs to.
                 zz = rays(5,n)*Scxlt
                 !counter how many elements overlaped at given location
@@ -1075,7 +1126,7 @@ contains
                 else
                     do nnn = 1, noverlap
                         call getfldt_BeamLineElem(beamelem(idbeamln(nnn)),pos,momentum,&
-                                                tmpfld,fldmap(idrfile(3,idbeamln(nnn))))
+                                                  tmpfld,fldmap(idrfile(3,idbeamln(nnn))))
                         extfld = extfld + tmpfld
                     enddo
                 endif
@@ -1114,6 +1165,17 @@ contains
                 !          by = extfld(5)
                 !          bz = extfld(6)
 
+                if ((n == 1 ) .and. (myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
+
+                    print *, 'External field at this point:'
+                    print *, ' - electric: ', extfld(1), extfld(2), extfld(3)
+                    print *, ' - magnetic: ', extfld(4), extfld(5), extfld(6)
+                    print *, 'Total field at this point:'
+                    print *, ' - electric: ', ex, ey, ez
+                    print *, ' - magnetic: ', bx, by, bz
+
+                endif
+
                 !//advance the momenta of particles using implicit central
                 !//difference scheme from Birdall and Longdon's book.
                 umx = rays(2,n) + coefLz*ex*0.5d0*dt
@@ -1135,43 +1197,8 @@ contains
                 rays(4,n) = upy + coefLz*ey*0.5d0*dt
                 rays(6,n) = upz + coefLz*ez*0.5d0*dt
 
-                if ((n == 1 ) .and. (myidx == 1) .and. (myidy == 1)) then
+                if ((n == 1 ) .and. (myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
 
-                    print *, '--------------------DEBUGGING--------------------'
-                    print *, 'Called `kick2t_BeamBunch` with parameters:'
-                    print *, '       innp: ', innp
-                    print *, '     incurr: ', incurr
-                    print *, '       innx: ', innx
-                    print *, '       inny: ', inny
-                    print *, '       innz: ', innz
-                    print *, '       rays: [array]'
-                    print *, '        exg: [array]'
-                    print *, '        eyg: [array]'
-                    print *, '        ezg: [array]'
-                    print *, '        bxg: [array]'
-                    print *, '        byg: [array]'
-                    print *, '        bzg: [array]'
-                    print *, '        npx: ', npx
-                    print *, '        npy: ', npy
-                    print *, '      myidx: ', myidx
-                    print *, '      myidy: ', myidy
-                    print *, '         tg: ', tg
-                    print *, '       chge: ', chge
-                    print *, '       mass: ', mass
-                    print *, '         dt: ', dt
-                    print *, '  zbeamelem: [array]'
-                    print *, '    idrfile: ', idrfile
-                    print *, '    nbeamln: ', nbeamln
-                    print *, '     ibinit: ', ibinit
-                    print *, '      ibend: ', ibend
-                    print *, '    flagerr: ', flagerr
-                    print *, 'Key calculated parameters:'
-                    PRINT *, ' - charge/mass ratio `qmcc`: ', qmcc
-                    print *, ' - coefficient `coefLz`: ', coefLz
-                    print *, 'Now processing particle #: ', n
-                    print *, 'Particle phase space: ', rays(:,n)
-                    print *, 'Electric field at this point: ', ex, ey, ez
-                    print *, 'Magnetic field at this point: ', bx, by, bz
                     print *, 'Momentum kick calculation:'
                     print *, '        umx: ', umx
                     print *, '        umy: ', umy
