@@ -885,7 +885,7 @@ contains
     subroutine kick2t_BeamBunch(innp,incurr,innx,inny,innz,rays,exg,&
                                 eyg,ezg,bxg,byg,bzg,ptsgeom,npx,npy,myidx,myidy,tg,&
                                 chge,mass,dt,beamelem,zbeamelem,idrfile,nbeamln,ibinit,ibend,&
-                                fldmap,flagerr)!add beam current incurr 2016-2-10
+                                fldmap,flagerr, debug)!add beam current incurr 2016-2-10
         implicit none
         include 'mpif.h'
         integer, intent(in) :: innp,innx,inny,innz,npx,npy,myidx,myidy,&
@@ -922,6 +922,7 @@ contains
         integer, dimension(Maxoverlap) :: idbeamln
         integer :: noverlap,nnn
         integer :: ntmp1,ntmp2
+        integer :: debug
 
         call starttime_Timer( t0 )
         ! write(10,100)exg(1,1,1),ezg(1,1,1),exg(10,10,10),ezg(10,10,10),exg(20,20,20),ezg(20,20,20)
@@ -929,7 +930,7 @@ contains
         qmcc = chge/mass
         coefLz = qmcc*Scxlt
 
-        if ((myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
+        if (debug == 1) then
 
             print *, '--------------------DEBUGGING--------------------'
             print *, 'Called `kick2t_BeamBunch` with parameters:'
@@ -1009,7 +1010,7 @@ contains
         do n = 1, innp
             if(rays(5,n)>0) then !//only particles outside the emission plane get accelerated
 
-                if ((n == 1 ) .and. (myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
+                if ((debug == 1) .and. (n == 1)) then
 
                     print *, 'Now processing particle #: ', n
                     print *, 'Particle phase space: ', rays(:,n)
@@ -1085,7 +1086,7 @@ contains
                         +byg(ix1,jx1,kx)*(1.0d0-ab)*(1.0d0-cd)*ef &
                         +byg(ix1,jx,kx)*(1.0d0-ab)*cd*ef
 
-                if ((n == 1 ) .and. (myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
+                if ((debug == 1) .and. (n == 1)) then
 
                     print *, 'Calculated field at this point:'
                     print *, ' - electric: ', exn, eyn, ezn
@@ -1165,7 +1166,7 @@ contains
                 !          by = extfld(5)
                 !          bz = extfld(6)
 
-                if ((n == 1 ) .and. (myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
+                if ((debug == 1) .and. (n == 1)) then
 
                     print *, 'External field at this point:'
                     print *, ' - electric: ', extfld(1), extfld(2), extfld(3)
@@ -1197,7 +1198,7 @@ contains
                 rays(4,n) = upy + coefLz*ey*0.5d0*dt
                 rays(6,n) = upz + coefLz*ez*0.5d0*dt
 
-                if ((n == 1 ) .and. (myidx == 1) .and. (myidy == 1) .and. tg < 1e-10) then
+                if ((debug == 1) .and. (n == 1)) then
 
                     print *, 'Momentum kick calculation:'
                     print *, '        umx: ', umx

@@ -880,6 +880,8 @@ contains
         double precision :: rtest, betas
         double precision, allocatable :: dL(:)
 
+        integer :: debug_kick
+
         !**************************%%%%%%  by LHP
         double precision, dimension(3) :: momentumt
         double precision, dimension(4) ::post
@@ -2234,10 +2236,15 @@ contains
                                 stop
                             else
                                 !Boris's 2nd order integrator
+                                if ((myid == 0) .and. (i == 1)) then
+                                    debug_kick = 1
+                                else
+                                    debug_kick = 0
+                                endif
                                 call kick2t_BeamBunch(Nplocal(ib),Bcurr,Nxlocal,Nylocal,Nzlocal,&
-                                                    Ebunch(ib)%Pts1,exg,eyg,ezg,bxg,byg,bzg,Ageom,npx,npy,myidx,&
-                                                    myidy,t,Ebunch(ib)%Charge,Ebunch(ib)%Mass,dtless,Blnelem,&
-                                                    zBlnelem,idrfile,Nblem,ibinit,ibend,fldmp,Flagerr)
+                                                      Ebunch(ib)%Pts1,exg,eyg,ezg,bxg,byg,bzg,Ageom,npx,npy,myidx,&
+                                                      myidy,t,Ebunch(ib)%Charge,Ebunch(ib)%Mass,dtless,Blnelem,&
+                                                      zBlnelem,idrfile,Nblem,ibinit,ibend,fldmp,Flagerr, debug_kick)
                             endif
                         enddo
 
