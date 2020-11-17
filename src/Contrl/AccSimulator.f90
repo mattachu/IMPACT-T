@@ -188,7 +188,7 @@ contains
         integer          :: found_process_local,   found_particle_local
 
         ! Announce start
-        if (myid == 0) print *, 'Seeking specific particle for debugging, on line ', line
+        if (myid == 0) print *, 'DEBUG: * Seeking specific particle for debugging, on line ', line
         write(id_string, '(I1)') myid
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
@@ -210,8 +210,8 @@ contains
         found_particle_local = 0
         do iseek = 1, Ebunch(1)%Nptlocal
             if (all(abs(Ebunch(1)%Pts1(:,iseek) - seek_particle) < seek_tolerance)) then
-                print *, ' - found match on process ', id_string, ': ', iseek
-                print *, ' - phase space: ', Ebunch(1)%Pts1(:,iseek)
+                print *, 'DEBUG:    - found match on process ', id_string, ': ', iseek
+                print *, 'DEBUG:    - phase space: ', Ebunch(1)%Pts1(:,iseek)
                 found_process_local = myid
                 found_particle_local = iseek
             endif
@@ -234,13 +234,13 @@ contains
 
         ! Report failure
         if ((found_particle_current == 0) .and. (myid == found_process_original)) then
-            print *, ' - did not find the specific particle :('
+            print *, 'DEBUG:    - did not find the specific particle :('
             if (first_run == 1) then
                 found_process_original = 0
                 found_particle_original = 0
             else
                 if (found_particle_original < Ebunch(1)%Nptlocal) then
-                    print *, ' - previous match now has phase space: ', &
+                    print *, 'DEBUG:    - previous match now has phase space: ', &
                              Ebunch(1)%Pts1(:,found_particle_original)
                 endif
             endif
@@ -250,6 +250,36 @@ contains
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
     end subroutine seek
+
+    ! Update the seek particle (debugging kick2t)
+    subroutine update_seek(myid, line)
+        implicit none
+        include 'mpif.h'
+        integer,          intent(in)           :: myid
+        character(4),     intent(in)           :: line
+
+        integer          :: iseek, ierr
+
+        if (found_particle_current == 0) then
+            ! Report lost particle
+            if (myid == 0) print *, 'DEBUG: * Particle lost by line ', line
+        else
+            ! Update particle position
+            if (myid == found_process_current) then
+                seek_particle = Ebunch(1)%Pts1(:, found_particle_current)
+            endif
+            ! Broadcast new position to all processes
+            call MPI_BCAST(seek_particle, 6, MPI_DOUBLE, found_process_current, &
+                           MPI_COMM_WORLD, ierr)
+            ! Report movement
+            if (myid == 0) then
+                print *, 'DEBUG: * Seek particle updated on line ', line
+                print *, 'DEBUG:    - new phase space: ', seek_particle
+            endif
+        endif
+
+    end subroutine update_seek
+
 
     !> set up objects and parameters.
     subroutine init_AccSimulator(time)
@@ -816,7 +846,7 @@ contains
         enddo
 
         ! debugging kick2t
-        call seek(myid, '819 ', 1, distparam)
+        call seek(myid, '849 ', 1, distparam)
 
         t_init = t_init + elapsedtime_Timer(t0)
         !this is just for finding the driven phase of each cavity
@@ -1468,7 +1498,7 @@ contains
             endif
 
             ! debugging kick2t
-            call seek(myid, '1471', 0)
+            if (i == 1) call seek(myid, '1501', 0)
 
             !steering the beam centroid to the given X, Px,Y, Py, Z, Pz values at given location
             !if(t.le.tsteer(isteer+1) .and. (t+dtless*Dt).ge.tsteer(isteer+1)) then
@@ -1659,9 +1689,9 @@ contains
             !!! end DWA
 
             ! debugging kick2t
-            call seek(myid, '1662', 0)
+            if (i == 1) call seek(myid, '1692', 0)
             !//update particle positions using velocity for half step.
-            if (myid == 0) print *, 'Drifting particles (line 1664)'
+            if ((i == 1) .and. (myid == 0)) print *, 'DEBUG: * Drifting particles (line 1694)'
             if(flagcathode.eq.1) then
                 do ib = 1, Nbunch
                     call drifthalf_BeamBunch(Ebunch(ib),t,dtless,betazini)
@@ -1673,7 +1703,8 @@ contains
             endif
             t = t + 0.5*dtless*Dt
             ! debugging kick2t
-            call seek(myid, '1676', 0)
+            if (i == 1) call update_seek(myid, '1706')
+            if (i == 1) call seek(myid, '1707', 0)
 
             !ibunch is total number of bunches within the effective computational domain
             !only bunch/bin with zmax>0 is counted as effective bunch/bin
@@ -1952,9 +1983,9 @@ contains
 
                         call getlcrange_CompDom(Ageom,lcrange)
                         ! debugging kick2t
-                        call seek(myid, '1955', 0)
+                        if (i == 1) call seek(myid, '1986', 0)
                         !move all effective particles to their local processor
-                        if (myid == 0) print *, 'Moving particles (line 1957)'
+                        if ((i == 1) .and. (myid == 0)) print *, 'DEBUG: * Moving particles (line 1988)'
                         if(totnp.gt.1) then
                             do ib = 1, ibunch
                                 nplctmp = Nplocal(ib)
@@ -1966,7 +1997,7 @@ contains
                             enddo
                         endif
                         ! debugging kick2t
-                        call seek(myid, '1969', 0)
+                        if (i == 1) call seek(myid, '2000', 0)
 
                         !assign the storage for potential and charge density
                         call set_FieldQuant(Potential,Nx,Ny,Nz,Ageom,grid2d,npx,&
@@ -2030,9 +2061,9 @@ contains
                             endif
                             call getlcrange_CompDom(Ageom,lcrange)
                             ! debugging kick2t
-                            call seek(myid, '2033', 0)
+                            if (i == 1) call seek(myid, '2064', 0)
                             !//move particles around using the updated local geometry
-                            if (myid == 0) print *, 'Moving particles (line 2035)'
+                            if ((i == 1) .and. (myid == 0)) print *, 'DEBUG: * Moving particles (line 2066)'
                             do ib = 1, ibunch
                                 nplctmp = Nplocal(ib)
                                 ! pass particles to local space domain on new processor.
@@ -2050,7 +2081,7 @@ contains
                                 Nplocal(ib) = nplctmp
                             enddo
                             ! debugging kick2t
-                            call seek(myid, '2053', 0)
+                            if (i == 1) call seek(myid, '2066', 0)
                             !prepare for charge density and Poisson solver
                             deallocate(chgdens)
                             allocate(chgdens(Nxlocal,Nylocal,Nzlocal))
@@ -2343,20 +2374,21 @@ contains
                                 stop
                             else
                                 ! debugging kick2t
-                                call seek(myid, '2346', 0)
+                                if (i == 1) call seek(myid, '2377', 0)
                                 if ((myid == found_process_current) .and. (i == 1)) then
                                     debug_kick = found_particle_current
                                 else
                                     debug_kick = 0
                                 endif
                                 !Boris's 2nd order integrator
-                                if (myid == 0) print *, 'Kicking particles (line 2553)'
+                                if ((i == 1) .and. (myid == 0)) print *, 'DEBUG: * Kicking particles (line 2384)'
                                 call kick2t_BeamBunch(Nplocal(ib),Bcurr,Nxlocal,Nylocal,Nzlocal,&
                                                       Ebunch(ib)%Pts1,exg,eyg,ezg,bxg,byg,bzg,Ageom,npx,npy,myidx,&
                                                       myidy,t,Ebunch(ib)%Charge,Ebunch(ib)%Mass,dtless,Blnelem,&
                                                       zBlnelem,idrfile,Nblem,ibinit,ibend,fldmp,Flagerr, debug_kick)
                                 ! debugging kick2t
-                                call seek(myid, '2359', 0)
+                                if (i == 1) call update_seek(myid, '2390')
+                                if (i == 1) call seek(myid, '2391', 0)
                             endif
                         enddo
 
@@ -2383,9 +2415,10 @@ contains
                 1000      continue
 
                 ! debugging kick2t
-                call seek(myid, '2386', 0)
+                if (i == 1) call seek(myid, '2418', 0)
 
                 !//update particle positions using new velocity for half step.
+                if ((i == 1) .and. (myid == 0)) print *, 'DEBUG: * Drifting particles (line 2421)'
                 if(flagcathode.eq.1) then
                     do ib = 1, Nbunch
                         call drifthalf_BeamBunch(Ebunch(ib),t,dtless,betazini)
@@ -2414,6 +2447,10 @@ contains
                     enddo
                 endif
                 t = t + 0.5*dtless*Dt
+
+                ! debugging kick2t
+                if (i == 1) call update_seek(myid, '2452')
+                if (i == 1) call seek(myid, '2453', 0)
 
                 !diagnostic output at given interval
                 if(mod(i, diag_interval) == 0) then
