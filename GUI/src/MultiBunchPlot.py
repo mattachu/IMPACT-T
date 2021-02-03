@@ -17,13 +17,18 @@ def get_input_filename(bunch):
 
 def get_bunch_count():
     """Get the number of bunches from the first input file."""
-    input = read_input_file(get_input_filename(1))
-    return int(input[1].split()[2])
+    input_lines = read_input_file(get_input_filename(1))
+    return int(input_lines[1].split()[2])
+
+def get_z_offset():
+    """Get the initial z-offset from the first input file."""
+    input_lines = read_input_file(get_input_filename(1))
+    return float(input_lines[7].split()[5])
 
 def get_lattice():
     """Get the lattice from the first input file as a list of lists."""
-    input = read_input_file(get_input_filename(1))
-    return [line.split() for line in input[9:]]
+    input_lines = read_input_file(get_input_filename(1))
+    return [line.split() for line in input_lines[9:]]
 
 def get_bpms(lattice, z_offset=None):
     """Get the location and file number of all BPMs as a list of tuples."""
@@ -53,13 +58,13 @@ def get_bunch_counts(bunch_list):
 
 def get_particle_count(filename):
     """Get the macroparticle count from a given input file."""
-    input = read_input_file(filename)
-    return int(input[2].split()[1])
+    input_lines = read_input_file(filename)
+    return int(input_lines[2].split()[1])
 
 def get_mass(filename):
     """Get the particle mass from a given input file."""
-    input = read_input_file(filename)
-    return float(input[8].split()[2])
+    input_lines = read_input_file(filename)
+    return float(input_lines[8].split()[2])
 
 def is_mass_matched(bunch_list):
     """Check whether the particle mass values are the same for given bunches."""
@@ -414,7 +419,8 @@ def plot_bunch_energies(axes, data, bunch_list, title=None, bins=100):
     labels.reverse()
     axes.legend(handles, labels, loc='upper right')
 
-def plot_total_energy(axes, combined_data, bunch_list, title=None, bins=100):
+def plot_total_energy(axes, combined_data, bunch_list, title=None, bins=100,
+                      target_range=None):
     """Plot total energy spectrum histogram on log scale."""
     if not title:
         title = 'Total energy spectrum for ' + bunch_text(bunch_list)
@@ -425,6 +431,17 @@ def plot_total_energy(axes, combined_data, bunch_list, title=None, bins=100):
     axes.set_xlabel('Energy (MeV)')
     axes.set_ylabel('Number of macroparticles')
     axes.set_yscale('log')
+    if target_range is not None:
+        min_energy = target_range[0]/1e6  # MeV
+        max_energy = target_range[1]/1e6  # MeV
+        W_low = W[W < min_energy]
+        W_high = W[W > max_energy]
+        W_target = W[W >= min_energy]
+        W_target = W_target[W_target <= max_energy]
+        W = [W_low, W_target, W_high]
+        labels = ['Below target', 'Target range', 'Above target']
+        axes.hist(W, bins=bins, histtype='stepfilled', label=labels, alpha=0.7)
+        axes.legend()
 
 def add_plot_margins(axes, margin):
     """Adjust the axis limits to include a margin around the data."""
@@ -435,11 +452,19 @@ def add_plot_margins(axes, margin):
     axes.set_xlim(xmin - xmargin, xmax + xmargin)
     axes.set_ylim(ymin - ymargin, ymax + ymargin)
 
-def plot_all(bunch_list, z_offset=None):
+def select_by_energy(data, target_range):
+    """Return a subset of the data that falls within the target range."""
+    min_energy, max_energy = target_range
+    selected = data[data.T[6] >= min_energy]
+    selected = selected[selected.T[6] <= max_energy]
+    return selected
+
+def plot_all(bunch_list, target_range=None):
     """Run and save all plots consecutively."""
     bunch_list, invalid_bunches = check_bunch_list(bunch_list)
     if invalid_bunches:
         print(f'! Skipping invalid bunches: {invalid_bunches}')
+    z_offset = get_z_offset()
     print('Loading experimental data...')
     try:
         experimental_results = load_experimental_results()
@@ -520,7 +545,8 @@ def plot_all(bunch_list, z_offset=None):
         matplotlib.pyplot.close(figure)
     print('Processing initial phase space data...')
     try:
-        plot_phase_spaces_and_energies(40, 'initial', bunch_list, z_offset)
+        plot_phase_spaces_and_energies(
+            40, 'initial', bunch_list, z_offset, target_range)
     except FileNotFoundError as err:
         print(f'! Phase space data file not found: {err}')
         print( '! Skipping initial phase space step.')
@@ -529,7 +555,8 @@ def plot_all(bunch_list, z_offset=None):
         print( '! Skipping initial phase space step.')
     print('Processing final phase space data...')
     try:
-        plot_phase_spaces_and_energies(50, 'final', bunch_list, z_offset)
+        plot_phase_spaces_and_energies(
+            50, 'final', bunch_list, z_offset, target_range)
     except FileNotFoundError as err:
         print(f'! Phase space data file not found: {err}')
         print( '! Skipping final phase space step.')
@@ -548,7 +575,7 @@ def plot_all(bunch_list, z_offset=None):
             print(f'Processing BPM {filenumber} phase space data...')
             try:
                 plot_phase_spaces_and_energies(
-                    filenumber, location, bunch_list, z_offset)
+                    filenumber, location, bunch_list, z_offset, target_range)
             except FileNotFoundError as err:
                 print(f'! BPM data file not found: {err}')
                 print( '! Skipping this BPM plot step.')
@@ -556,7 +583,9 @@ def plot_all(bunch_list, z_offset=None):
                 print(f'! Error processing phase space data: {err}')
                 print( '! Skipping this BPM plot step.')
 
-def plot_phase_spaces_and_energies(filenumber, location, bunch_list, z_offset):
+def plot_phase_spaces_and_energies(
+        filenumber, location, bunch_list, z_offset, target_range):
+    """Generate all phase space and energy plots for the given output step."""
     if filenumber == 40:
         file_title = 'initial'
         phase_title = 'Initial phase space'
@@ -593,6 +622,24 @@ def plot_phase_spaces_and_energies(filenumber, location, bunch_list, z_offset):
         else:
             figure.savefig(f'phase-space-{file_title}')
         matplotlib.pyplot.close(figure)
+        if target_range is not None:
+            print(' - Plotting phase space for target energy range...')
+            try:
+                selected_data = select_by_energy(combined_data, target_range)
+            except Exception as err:
+                print(f' ! Error selecting data based on energy range: {err}')
+            else:
+                figure, axes = matplotlib.pyplot.subplots(
+                    nrows=2, ncols=2, dpi=300)
+                try:
+                    plot_phase_spaces(
+                        axes, selected_data, bunch_list, grid_size=300,
+                        title=f'{phase_title} for target energy range')
+                except Exception as err:
+                    print(f' ! Error plotting phase space data: {err}')
+                else:
+                    figure.savefig(f'phase-space-{file_title}-target')
+                matplotlib.pyplot.close(figure)
     if len(full_bunch_list) > 1:
         print(' - Plotting individual bunch phase spaces...')
         for bunch in full_bunch_list:
@@ -621,6 +668,7 @@ def plot_phase_spaces_and_energies(filenumber, location, bunch_list, z_offset):
         figure, axes = matplotlib.pyplot.subplots(dpi=300)
         try:
             plot_total_energy(axes, combined_data, bunch_list, bins=300,
+                target_range=target_range,
                 title=f'{energy_title} for {bunch_text(bunch_list)}')
         except Exception as err:
             print(f' ! Error plotting energy spectrum: {err}')
@@ -641,12 +689,4 @@ if __name__ == '__main__':
                 bunch_list = list(range(1, int(get_bunch_count()) + 1))
     else:
         bunch_list = list(range(1, int(get_bunch_count()) + 1))
-    if len(sys.argv) > 2:
-        z_offset = sys.argv[2]
-        try:
-            z_offset = float(z_offset)
-        except:
-            z_offset = None
-    else:
-        z_offset = None
-    plot_all(bunch_list, z_offset)
+    plot_all(bunch_list)
